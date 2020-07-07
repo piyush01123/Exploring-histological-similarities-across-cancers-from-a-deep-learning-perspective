@@ -4,9 +4,17 @@ import numpy as np
 import glob, os
 import argparse
 from PIL import Image
+import cv2
 
 
-def create_patches(slide_fp, level, patch_size, whiteness_limit, blackness_limit, max_faulty_pixels, dest_dir):
+def get_connected_components(img):
+    img = cv2.cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    img = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)[1]  # ensure binary
+    num_labels, labels_im = cv2.connectedComponents(img)
+    return num_labels,labels_im
+
+
+def create_patches(slide_fp, level, patch_size, whiteness_limit, blackness_limit, max_faulty_pixels, min_conn_comp, dest_dir, extras_dir):
     _, filename = os.path.split(slide_fp)
     slide_id, uuid, extension = filename.split('.')
     grade = int(slide_id.split('-')[3][:2])
@@ -20,40 +28,57 @@ def create_patches(slide_fp, level, patch_size, whiteness_limit, blackness_limit
         os.makedirs(os.path.join(dest_dir, label, slide_id))
 
     slide = openslide.OpenSlide(slide_fp)
-    W,H = slide.level_dimensions[level]
-    slide_image = slide.read_region(location=(0,0), level=level, size=(W,H)).convert('RGB')
-    arr = np.array(slide_image)
+    W,H = slide.level_dimensions[0]
+    patch_size_upscaled = 4*patch_size
+    W,H = W-W%patch_size_upscaled,H-H%patch_size_upscaled
 
-    ctr = 0    
-    for x in range(0,W,patch_size):
-        for y in range(0,H,patch_size):
-            patch = arr[x:x+patch_size,y:y+patch_size]
-            w,h,_ = patch.shape
-            if w<patch_size or h<patch_size:
+    im_slide = np.full((W//4,H//4,3),240,dtype=np.uint8)
+
+    ctr,ctr_rej = 0,0
+    for x in range(0,W//4,patch_size):
+        for y in range(0,H//4,patch_size):
+            patch = slide.read_region(location=(4*x,4*y), level=0, \
+                    size=(patch_size_upscaled,patch_size_upscaled)).convert('RGB')
+            patch = patch.resize((patch_size,patch_size))
+            patch_arr = np.swapaxes(np.array(patch),1,0)
+
+            is_white = np.all([patch_arr[:,:,i]>whiteness_limit for i in range(3)], axis=0)
+            is_black = np.all([patch_arr[:,:,i]<blackness_limit for i in range(3)], axis=0)
+            num_labels, labels_im = get_connected_components(patch_arr)
+
+            if np.sum(is_white+is_black)>patch_size*patch_size*max_faulty_pixels and num_labels<min_conn_comp:
+                ctr_rej += 1
                 continue
-            is_white = np.all([patch[:,:,i]>whiteness_limit for i in range(3)], axis=0)
-            is_black = np.all([patch[:,:,i]<blackness_limit for i in range(3)], axis=0)
-            if np.sum(is_white+is_black)>w*h*max_faulty_pixels:
-                continue
+
             fp = os.path.join(dest_dir, label, slide_id, "{}_X_{}_Y_{}.png".format(slide_id, x, y))
-            im_patch = Image.fromarray(patch)
-            im_patch.save(fp)
+            patch.save(fp)
+
+            im_slide[x:x+patch_size,y:y+patch_size,:] = patch_arr
             ctr += 1
 
-    print("Slide {} Done. Slide Dimensions W={} H={}, #Patches={}".format(filename,W,H,ctr), flush=True)
+    print("Slide {} Grade {} Dimensions W={} H={}, #Patches={} acc {} rej total {}".format(filename,grade,W,H,ctr,ctr_rej,ctr+ctr+rej), flush=True)
+
+    Image.fromarray(np.swapaxes(im_slide,1,0)).save(os.path.join(extras_dir, "full_slides", "{}.png".format(slide_id)))
+    (w_thumbnail, h_thumbnail), lvl = slide.level_dimensions[-1], len(slide.level_dimensions)-1
+    thumbnail = slide.read_region(location=(0,0, level=lvl, size=(w_thumbnail, h_thumbnail)).convert('RGB')
+    thumbnail.save(os.path.join(extras_dir, "thumbnails", "{}.png".format(slide_id)))
 
 
 def main():
     parser = argparse.ArgumentParser(description='Process args for patch extraction')
     parser.add_argument("--root_dir", type=str, help="Root directory", default="/ssd_scratch/cvit/MED/KIRC/SLIDES")
     parser.add_argument("--dest_dir", type=str, help="Destination directory", default="/ssd_scratch/cvit/MED/KIRC/PATCHES")
+    parser.add_argument("--extras_dir", type=str, help="Extras directory", default="/ssd_scratch/cvit/MED/KIRC/EXTRAS")
     parser.add_argument("--level", type=int, help="0 means 40x, 1 means 20x", default=1)
     parser.add_argument("--patch_size", type=int, default=512, help="Patch Size")
     parser.add_argument("--whiteness_limit", type=int, default=210, help="Whiteness Limit")
     parser.add_argument("--blackness_limit", type=int, default=5, help="Blackness Limit")
     parser.add_argument("--max_faulty_pixels", type=float, default=0.6, help="Max allowed fraction of only B/W pixels")
+    parser.add_argument("--min_conn_comp", type=int, default=10, help="Min allowed number of connected components")
 
     args = parser.parse_args()
+    os.makedirs(os.path.join(args.extras_dir, "full_slides"), exist_ok=True)
+    os.makedirs(os.path.join(args.extras_dir, "thumbnails"), exist_ok=True)
 
     ## change this if your storage format is different
     file_pattern = "{}/subset_*/*/*.svs".format(args.root_dir)
@@ -62,7 +87,7 @@ def main():
 
     for slide_file in slide_files:
         create_patches(slide_file,args.level,args.patch_size,args.whiteness_limit,\
-                    args.blackness_limit, args.max_faulty_pixels, args.dest_dir)
+        args.blackness_limit, args.max_faulty_pixels, args.min_conn_comp, args.dest_dir, args.extras_dir)
 
 
 if __name__=="__main__":
