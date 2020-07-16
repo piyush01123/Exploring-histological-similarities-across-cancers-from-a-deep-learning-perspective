@@ -152,14 +152,14 @@ def main():
 
     data_transforms = {
     'train': transforms.Compose([
-        transforms.RandomResizedCrop(image_size),
+        transforms.RandomResizedCrop(args.image_size),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize([0.596, 0.436, 0.586], [0.2066, 0.240, 0.186])
         ]),
     'val': transforms.Compose([
         transforms.Resize(256),
-        transforms.CenterCrop(image_size),
+        transforms.CenterCrop(args.image_size),
         transforms.ToTensor(),
         transforms.Normalize([0.596, 0.436, 0.586], [0.2066, 0.240, 0.186])
         ]),
@@ -178,9 +178,9 @@ def main():
                 nn.Linear(model.fc.in_features, len(train_dataset.classes))
                 )
 
-    if model_checkpoint is not None:
+    if args.model_checkpoint is not None:
         # IMP: This is because checkpoint dictionary has "module." in each key
-        ckpt = torch.load(model_checkpoint)
+        ckpt = torch.load(args.model_checkpoint)
         ckpt = {k.replace("module.", ""): v for k, v in ckpt.items()}
         model.load_state_dict(ckpt)
         print("[MSG] Model loaded from {}".format(model_checkpoint), flush=True)
