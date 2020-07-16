@@ -87,7 +87,7 @@ def test(model, val_dataloader, criterion, device, epoch, writer, save_prefix):
 
 def get_stratified_sampler(img_dataset):
     imgs, targets, num_classes = img_dataset.imgs, np.array(img_dataset.targets), len(img_dataset.classes)
-    class_counts = np.empty((num_classes,), dtype=np.float32)
+    class_counts = np.empty(num_classes,)
     for i in range(num_classes):
         class_counts[i] = sum(targets==i)
     class_weights = sum(class_counts)/class_counts # N/count not count/N
@@ -186,7 +186,7 @@ def main():
         print("[MSG] Model loaded from {}".format(model_checkpoint), flush=True)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    class_weights = torch.from_numpy(class_weights/sum(class_weights)).to(device)
+    class_weights = torch.from_numpy(class_weights/sum(class_weights), dtype=torch.float32).to(device)
     criterion = nn.CrossEntropyLoss(weight=class_weights)
 
     # trainable_modules = [model.fc]
