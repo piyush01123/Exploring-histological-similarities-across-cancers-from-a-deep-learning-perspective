@@ -186,7 +186,7 @@ def main():
         print("[MSG] Model loaded from {}".format(model_checkpoint), flush=True)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    class_weights = torch.from_numpy(class_weights/sum(class_weights), dtype=torch.float32).to(device)
+    class_weights = torch.from_numpy(class_weights/sum(class_weights)).to(torch.float32).to(device)
     criterion = nn.CrossEntropyLoss(weight=class_weights)
 
     # trainable_modules = [model.fc]
