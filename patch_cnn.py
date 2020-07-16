@@ -193,7 +193,7 @@ def main():
     # training_loop(0, num_epochs, trainable_modules)
 
     trainable_modules = [model.fc, model.layer4[1]]
-    training_loop(0, num_epochs, trainable_modules, model, train_dataloader, \
+    training_loop(0, args.num_epochs, trainable_modules, model, train_dataloader, \
             val_dataloader, criterion, args.batch_size, args.learning_rate, args.num_epochs, args.save_prefix, device, writer)
 
     # trainable_modules = [model.fc, model.layer4[1], model.layer4[0]]
