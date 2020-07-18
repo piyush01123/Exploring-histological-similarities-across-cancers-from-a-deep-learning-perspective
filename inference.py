@@ -102,8 +102,7 @@ def main():
     print("DEVICE {}".format(device), flush=True)
     model = nn.DataParallel(model).to(device)
 
-    fp_record = open('record.csv')
-    test(model, test_dataloader, device, writer, fp_record)
+    test(model, test_dataloader, device, writer)
 
 
 if __name__=="__main__":
