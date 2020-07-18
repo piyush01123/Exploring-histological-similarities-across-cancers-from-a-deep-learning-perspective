@@ -183,7 +183,7 @@ def main():
         ckpt = torch.load(args.model_checkpoint)
         ckpt = {k.replace("module.", ""): v for k, v in ckpt.items()}
         model.load_state_dict(ckpt)
-        print("[MSG] Model loaded from {}".format(model_checkpoint), flush=True)
+        print("[MSG] Model loaded from {}".format(args.model_checkpoint), flush=True)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     class_weights = torch.from_numpy(class_weights/sum(class_weights)).to(torch.float32).to(device)
@@ -192,15 +192,20 @@ def main():
     # trainable_modules = [model.fc]
     # training_loop(0, num_epochs, trainable_modules)
 
-    trainable_modules = [model.fc, model.layer4[1]]
-    training_loop(0, args.num_epochs, trainable_modules, model, train_dataloader, \
-            val_dataloader, criterion, args.batch_size, args.learning_rate, args.num_epochs, args.save_prefix, device, writer)
+    # trainable_modules = [model.fc, model.layer4[1]]
+    # training_loop(0, args.num_epochs, trainable_modules, model, train_dataloader, \
+    #         val_dataloader, criterion, args.batch_size, args.learning_rate, args.num_epochs, args.save_prefix, device, writer)
 
     # trainable_modules = [model.fc, model.layer4[1], model.layer4[0]]
     # training_loop(0, num_epochs, trainable_modules)
 
     # trainable_modules = [model.fc, model.layer4[1], model.layer4[0], model.layer3[1]]
     # training_loop(0, num_epochs, trainable_modules)
+
+    trainable_modules = [model.fc, model.layer4, model.layer3, model.layer2, model.layer1, model.bn1, model.conv1]
+    training_loop(11, args.num_epochs, trainable_modules, model, train_dataloader, \
+            val_dataloader, criterion, args.batch_size, args.learning_rate, args.num_epochs, args.save_prefix, device, writer)
+    
 
 
 if __name__=="__main__":
