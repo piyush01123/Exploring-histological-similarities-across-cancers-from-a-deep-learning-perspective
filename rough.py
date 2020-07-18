@@ -119,3 +119,26 @@ im_slide_full.save("OLP_{}.png".format(slide_id))
 
 im_slide_thumbnail = im_slide_full.resize((1024,int(H/W*1024)))
 im_slide_thumbnail.save("OLP_thumbnail_{}.png".format(slide_id))
+
+
+# YCbCr
+for x in range(0,W//4,patch_size):
+    for y in range(0,H//4,patch_size):
+        fp = os.path.join(root_dir_cancer, slide_id, "{}_X_{}_Y_{}.png".format(slide_id, x, y))
+        if not os.path.isfile(fp):
+            continue
+        break
+    if os.path.isfile(fp):
+        break
+
+patch = Image.open(fp)
+patch_arr = np.swapaxes(np.array(patch.convert('YCbCr')),1,0)
+prob = record_subset[record_subset.paths==fp].probs.values[0]
+Cb, Cr = int((1-prob)*255), int(prob*255),
+Y = patch_arr[:,:,0]
+overlap_tile = np.empty((patch_size,patch_size,3), dtype=np.uint8)
+overlap_tile[:,:,0] = Y
+overlap_tile[:,:,1] = Cb
+overlap_tile[:,:,2] = Cr
+
+Image.fromarray(np.swapaxes(overlap_tile,1,0), mode='YCbCr').save('overlap_tile.jpg')
