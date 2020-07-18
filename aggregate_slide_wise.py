@@ -50,6 +50,15 @@ def main():
     with open("slide_wise/performances.json", 'w') as fh:
         json.dump(performances, fh)
 
+    y_points_tumor, bins = np.histogram(result_df[result_df.targets==0].tumor_fraction,bins=10)
+    x_points_tumor = (bins[:-1]+bins[1:])/2
+    y_points_normal, bins = np.histogram(result_df[result_df.targets==1].tumor_fraction,bins=10)
+    x_points_normal = (bins[:-1]+bins[1:])/2
+    plt.plot(x_points_tumor,y_points_tumor,c='r', label='tumor')
+    plt.plot(x_points_normal,y_points_normal,c='b', label='normal')
+    plt.legend(); plt.grid(); plt.xlim(0,1); plt.ylim(0,1)
+    plt.savefig('tumor_fraction.jpg')
+
 
 if __name__=="__main__":
     main()
