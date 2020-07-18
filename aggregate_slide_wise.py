@@ -39,14 +39,14 @@ def main():
 
     performances = {"VOTING": get_performance(*get_conf_mat("pred_vote")), "MIL": get_performance(*get_conf_mat("pred_mil"))}
 
-    result.to_csv('slide_wise/summary.csv', index=False)
+    result_df.to_csv('slide_wise/summary.csv', index=False)
     with open("slide_wise/conf_mat_voting.json", 'w') as fp:
         tp,fn,fp,tn = get_conf_mat("pred_vote")
-        conf_mat = {"TP": tp, "FN": fn, "FP": fp "TN": tn}
+        conf_mat = {"TP": int(tp), "FN": int(fn), "FP": int(fp), "TN": int(tn)}
         json.dump(conf_mat, fp)
     with open("slide_wise/conf_mat_MIL.json", 'w') as fp:
         tp,fn,fp,tn = get_conf_mat("pred_mil")
-        conf_mat = {"TP": tp, "FN": fn, "FP": fp "TN": tn}
+        conf_mat = {"TP": int(tp), "FN": int(fn), "FP": int(fp), "TN": int(tn)}
         json.dump(conf_mat, fp)
     with open("slide_wise/performances.json", 'w') as fp:
         json.dump(performances, fp)
