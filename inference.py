@@ -50,7 +50,7 @@ def test(model, test_dataloader, device, writer):
                                      'preds': preds.squeeze(1).tolist(),
                                      'probs': pred_class_probs.tolist(),
                                     })
-            df.append(df_batch)
+            df = df.append(df_batch)
             y_pred.append(output.argmax(dim=1))
             y_true.append(targets)
             correct += preds.eq(targets.view_as(preds)).sum().item()
