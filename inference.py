@@ -54,6 +54,7 @@ def test(model, test_dataloader, device, writer):
             y_pred.append(output.argmax(dim=1))
             y_true.append(targets)
             correct += preds.eq(targets.view_as(preds)).sum().item()
+            print('[{}/{}] Done'.format((batch_id+1)*len(data),len(test_dataloader.dataset)), flush=True)
     test_acc = 100.*correct/len(test_dataloader.dataset)
     print("Test set: Accuracy: {}/{} ({:.2f}%)".format(correct, len(test_dataloader.dataset), \
           test_acc), flush=True)
