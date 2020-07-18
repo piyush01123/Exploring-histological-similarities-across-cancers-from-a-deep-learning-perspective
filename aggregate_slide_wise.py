@@ -40,16 +40,16 @@ def main():
     performances = {"VOTING": get_performance(*get_conf_mat("pred_vote")), "MIL": get_performance(*get_conf_mat("pred_mil"))}
 
     result_df.to_csv('slide_wise/summary.csv', index=False)
-    with open("slide_wise/conf_mat_voting.json", 'w') as fp:
+    with open("slide_wise/conf_mat_voting.json", 'w') as fh:
         tp,fn,fp,tn = get_conf_mat("pred_vote")
-        conf_mat = {"TP": int(tp), "FN": int(fn), "FP": int(fp), "TN": int(tn)}
-        json.dump(conf_mat, fp)
-    with open("slide_wise/conf_mat_MIL.json", 'w') as fp:
+        conf_mat = {"TP": tp, "FN": fn, "FP": fp, "TN": tn}
+        json.dump(conf_mat, fh)
+    with open("slide_wise/conf_mat_MIL.json", 'w') as fh:
         tp,fn,fp,tn = get_conf_mat("pred_mil")
-        conf_mat = {"TP": int(tp), "FN": int(fn), "FP": int(fp), "TN": int(tn)}
-        json.dump(conf_mat, fp)
-    with open("slide_wise/performances.json", 'w') as fp:
-        json.dump(performances, fp)
+        conf_mat = {"TP": tp, "FN": fn, "FP": fp, "TN": tn}
+        json.dump(conf_mat, fh)
+    with open("slide_wise/performances.json", 'w') as fh:
+        json.dump(performances, fh)
 
 
 if __name__=="__main__":
