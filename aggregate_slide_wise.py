@@ -18,11 +18,11 @@ def main():
     result_df["pred_mil"] = (result_df.tumor_fraction==0).astype(int)
 
     def get_conf_mat(pred_col):
-        TP = ((result_df[pred_col]==1) & (result_df.targets==1)).sum()
-        FN = ((result_df[pred_col]==0) & (result_df.targets==1)).sum()
-        FP = ((result_df[pred_col]==1) & (result_df.targets==0)).sum()
-        TN = ((result_df[pred_col]==0) & (result_df.targets==0)).sum()
-        return TP,FN,FP,TN
+        tp = ((result_df[pred_col]==1) & (result_df.targets==1)).sum()
+        fn = ((result_df[pred_col]==0) & (result_df.targets==1)).sum()
+        fp = ((result_df[pred_col]==1) & (result_df.targets==0)).sum()
+        tn = ((result_df[pred_col]==0) & (result_df.targets==0)).sum()
+        return tp,fn,fp,tn
 
     def get_performance(tp,fn,fp,tn):
         precision_cancer = tn/(tn+fn)
@@ -38,17 +38,18 @@ def main():
                }
 
     performances = {"VOTING": get_performance(*get_conf_mat("pred_vote")), "MIL": get_performance(*get_conf_mat("pred_mil"))}
-    performances = pd.DataFrame({"Method": ["Voting", "MIL"], })
-    with open("slide_wise/performances.json", 'w') as fp:
-        json.dump(performances, fp)
-
-    with open("slide_wise/conf_mat_voting.json", 'w') as fp:
-        json.dump(get_conf_mat("pred_vote"), fp)
-
-    with open("slide_wise/conf_mat_MIL.json", 'w') as fp:
-        json.dump(get_conf_mat("pred_mil"), fp)
 
     result.to_csv('slide_wise/summary.csv', index=False)
+    with open("slide_wise/conf_mat_voting.json", 'w') as fp:
+        tp,fn,fp,tn = get_conf_mat("pred_vote")
+        conf_mat = {"TP": tp, "FN": fn, "FP": fp "TN": tn}
+        json.dump(conf_mat, fp)
+    with open("slide_wise/conf_mat_MIL.json", 'w') as fp:
+        tp,fn,fp,tn = get_conf_mat("pred_mil")
+        conf_mat = {"TP": tp, "FN": fn, "FP": fp "TN": tn}
+        json.dump(conf_mat, fp)
+    with open("slide_wise/performances.json", 'w') as fp:
+        json.dump(performances, fp)
 
 
 if __name__=="__main__":
