@@ -1,0 +1,1 @@
+{"conf_mat_MIL": {"FN": 44, "TP": 36, "FP": 0, "TN": 163}, "conf_mat_voting": {"FN": 1, "TP": 79, "FP": 1, "TN": 162}}
