@@ -56,7 +56,7 @@ def main():
     x_points_normal = (bins[:-1]+bins[1:])/2
     plt.plot(x_points_tumor,y_points_tumor,c='r', label='tumor')
     plt.plot(x_points_normal,y_points_normal,c='b', label='normal')
-    plt.legend(); plt.grid(); plt.xlim(0,1); plt.ylim(0,1)
+    plt.legend(); plt.grid(); plt.xlim(0,1)
     plt.savefig('tumor_fraction.jpg')
 
 
