@@ -91,6 +91,7 @@ def main():
     model.load_state_dict(ckpt)
     print("[MSG] Model loaded from {}".format(args.model_checkpoint), flush=True)
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("DEVICE {}".format(device), flush=True)
     model = nn.DataParallel(model).to(device)
 
