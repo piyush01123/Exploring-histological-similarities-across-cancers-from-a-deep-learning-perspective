@@ -17,6 +17,7 @@ from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import pandas as pd
 from PIL import Image, ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -34,20 +35,25 @@ def test(model, test_dataloader, device, writer):
     y_pred = []
     y_true = []
     print("Y=0-->CANCER, Y=1-->NORMAL", flush=True)
+    df = pd.DataFrame(columns=['paths', 'slide_ids', 'targets', 'preds', 'probs'])
     with torch.no_grad():
-        for batch_id, (data, target, paths) in enumerate(test_dataloader):
-
-            data, target = data.to(device), target.to(device)
+        for batch_id, (data, targets, paths) in enumerate(test_dataloader):
+            data, targets = data.to(device), targets.to(device)
             output = model(data)
             probs = F.softmax(output, dim=1)
             preds = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
 
-            for (i_path, i_prob, i_y, i_pred) in zip(paths, probs, target, preds):
-                print("path=\"{}\", prob={}, y={}, pred={}".format(i_path, i_prob.cpu().numpy()[1], i_y, i_pred.cpu().numpy()[1]), flush=True)
-
+            pred_class_probs = probs[torch.arange(len(preds))[:,None],preds].squeeze(1)
+            df_batch = pd.DataFrame({'paths': list(paths),
+                                     'slide_ids': [p.split('/')[-2] for p in paths],
+                                     'targets': targets.tolist(),
+                                     'preds': preds.squeeze(1).tolist(),
+                                     'probs': pred_class_probs.tolist(),
+                                    })
+            df.append(df_batch)
             y_pred.append(output.argmax(dim=1))
-            y_true.append(target)
-            correct += preds.eq(target.view_as(preds)).sum().item()
+            y_true.append(targets)
+            correct += preds.eq(targets.view_as(preds)).sum().item()
     test_acc = 100.*correct/len(test_dataloader.dataset)
     print("Test set: Accuracy: {}/{} ({:.2f}%)".format(correct, len(test_dataloader.dataset), \
           test_acc), flush=True)
@@ -56,6 +62,7 @@ def test(model, test_dataloader, device, writer):
     classes = test_dataloader.dataset.classes
     report = classification_report(y_true, y_pred, target_names=classes, output_dict=True, digits=4)
     print(report, flush=True)
+    df.to_csv('record.csv', index=False)
 
 
 def main():
@@ -95,8 +102,8 @@ def main():
     print("DEVICE {}".format(device), flush=True)
     model = nn.DataParallel(model).to(device)
 
-
-    test(model, test_dataloader, device, writer)
+    fp_record = open('record.csv')
+    test(model, test_dataloader, device, writer, fp_record)
 
 
 if __name__=="__main__":
