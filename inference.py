@@ -21,14 +21,6 @@ from PIL import Image, ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
-parser = argparse.ArgumentParser(description='Process args for Classifer')
-parser.add_argument("--test_dir", type=str, required=True)
-parser.add_argument("--batch_size", type=int, default=128)
-parser.add_argument("--image_size", type=int, default=224)
-parser.add_argument("--log_dir", type=str, default="runs/")
-parser.add_argument("--model_checkpoint", type=str, required=True)
-
-
 class ModImageFolder(datasets.ImageFolder):
     def __getitem__(self, index):
         img, label = super(datasets.ImageFolder, self).__getitem__(index)
@@ -48,14 +40,14 @@ def test(model, test_dataloader, device, writer):
             data, target = data.to(device), target.to(device)
             output = model(data)
             probs = F.softmax(output, dim=1)
-            pred = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
+            preds = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
 
-            for (i_path, i_prob, i_y) in zip(paths, probs, target):
-                print("path=\"{}\", prob={}, y={}".format(i_path, i_prob.cpu().numpy()[1], i_y), flush=True)
+            for (i_path, i_prob, i_y, i_pred) in zip(paths, probs, target, preds):
+                print("path=\"{}\", prob={}, y={}, pred={}".format(i_path, i_prob.cpu().numpy()[1], i_y, i_pred.cpu().numpy()[1]), flush=True)
 
             y_pred.append(output.argmax(dim=1))
             y_true.append(target)
-            correct += pred.eq(target.view_as(pred)).sum().item()
+            correct += preds.eq(target.view_as(preds)).sum().item()
     test_acc = 100.*correct/len(test_dataloader.dataset)
     print("Test set: Accuracy: {}/{} ({:.2f}%)".format(correct, len(test_dataloader.dataset), \
           test_acc), flush=True)
@@ -67,14 +59,15 @@ def test(model, test_dataloader, device, writer):
 
 
 def main():
+    parser = argparse.ArgumentParser(description='Process args for Classifer')
+    parser.add_argument("--test_dir", type=str, required=True)
+    parser.add_argument("--batch_size", type=int, default=128)
+    parser.add_argument("--image_size", type=int, default=224)
+    parser.add_argument("--log_dir", type=str, default="logs/")
+    parser.add_argument("--model_checkpoint", type=str, required=True)
     args = parser.parse_args()
 
-    test_dir = args.test_dir
-    batch_size = args.batch_size
-    image_size = args.image_size
-    log_dir = args.log_dir
-    model_checkpoint = args.model_checkpoint
-    writer = SummaryWriter(log_dir=log_dir)
+    writer = SummaryWriter(log_dir=args.log_dir)
 
     data_transform = transforms.Compose([
         transforms.Resize(256),
@@ -83,28 +76,25 @@ def main():
         transforms.Normalize([0.596, 0.436, 0.586], [0.2066, 0.240, 0.186])
         ])
 
-    test_dataset = ModImageFolder(root=test_dir, transform=data_transform)
+    test_dataset = ModImageFolder(root=args.test_dir, transform=data_transform)
     nw = 4 if torch.cuda.is_available() else 0
-    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, num_workers=nw, shuffle=False)
+    test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=nw, shuffle=False)
 
-    model = models.resnet18(pretrained=True)
-    # model.fc = nn.Sequential(
-    #             nn.Dropout(p=0.2), # p is prob. of a neuron not being dropped out
-    #             nn.Linear(model.fc.in_features, len(test_dataset.classes))
-    #             )
-    model.fc = nn.Linear(model.fc.in_features, len(test_dataset.classes))
+    model = models.resnet18()
+    model.fc = nn.Sequential(
+                nn.Dropout(p=0.2), # p is prob. of a neuron not being dropped out
+                nn.Linear(model.fc.in_features, len(test_dataset.classes))
+                )
 
-    for param in model.parameters():
-        param.requires_grad=False
+    ckpt = torch.load(args.model_checkpoint, map_location=device)
+    ckpt = {k.replace("module.", ""): v for k, v in ckpt.items()}
+    model.load_state_dict(ckpt)
+    print("[MSG] Model loaded from {}".format(args.model_checkpoint), flush=True)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("DEVICE {}".format(device), flush=True)
     model = nn.DataParallel(model).to(device)
 
-    ckpt = torch.load(model_checkpoint, map_location=device)
-    # ckpt = {k.replace("module.", ""): v for k, v in ckpt.items()}
-    model.load_state_dict(ckpt)
-    print("[MSG] Model loaded from {}".format(model_checkpoint), flush=True)
 
     test(model, test_dataloader, device, writer)
 

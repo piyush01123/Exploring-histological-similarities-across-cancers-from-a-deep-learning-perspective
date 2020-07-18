@@ -10,7 +10,7 @@ txt = open(log_file, 'r').read().strip().split('\n')[3:-2]
 # test_files = glob.glob("/ssd_scratch/cvit/medical_data/TCGA_KIRC/test/*/*/*.png")
 # assert len(txt)==len(test_files)
 
-df = pd.DataFrame(columns=["slide_id", "img_id", "gt", "py"])
+df = pd.DataFrame(columns=["slide_id", "img_id", "gt", "py", "pred"])
 paths = [re.search("\".*\"", line).group(0).strip("\"") for line in txt]
 slide_ids = [re.search("TCGA-.*/", item).group(0).strip("/") for item in paths]
 img_ids = [item.split('/')[-1] for item in paths]
@@ -19,7 +19,6 @@ pys = [float(tx.split(', ')[-2].strip("prob=")) for tx in txt]
 
 df = pd.DataFrame({"slide_id": slide_ids, "img_id": img_ids, "gt": gts, "py": pys})
 
-df["pred_y"] = (df["py"]>0.5).astype(int)
 res = df.groupby("slide_id", as_index=False).sum()[["slide_id", "gt", "pred_y"]]
 count = df.groupby("slide_id", as_index=False).count()[["slide_id", "gt"]]
 count = count.rename(columns={"gt": "count"})
