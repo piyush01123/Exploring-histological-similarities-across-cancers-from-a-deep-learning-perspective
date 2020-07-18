@@ -11,7 +11,7 @@ import itertools
 import pandas as pd
 
 
-def create_patches(slide_id, root_dir, patch_size, dest_dir, thumbnail_dir, patch_df, record_df, slide_class, alpha):
+def create_heatmaps(slide_id, root_dir, patch_size, dest_dir, thumbnail_dir, patch_df, record_df, slide_class, alpha):
     _,_,W,H,_= patch_df[patch_df.slide_id==slide_id].values.squeeze(0)
     im_slide = np.full((W//4,H//4,3),240,dtype=np.uint8)
 
