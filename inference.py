@@ -86,12 +86,11 @@ def main():
                 nn.Linear(model.fc.in_features, len(test_dataset.classes))
                 )
 
-    ckpt = torch.load(args.model_checkpoint, map_location=device)
+    ckpt = torch.load(args.model_checkpoint)
     ckpt = {k.replace("module.", ""): v for k, v in ckpt.items()}
     model.load_state_dict(ckpt)
     print("[MSG] Model loaded from {}".format(args.model_checkpoint), flush=True)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("DEVICE {}".format(device), flush=True)
     model = nn.DataParallel(model).to(device)
 
