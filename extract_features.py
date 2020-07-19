@@ -2,7 +2,7 @@
 
 import torch.nn as nn
 from torchvision import datasets, models, transforms
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 import torch
 import argparse
 import numpy as np
@@ -39,6 +39,13 @@ class h5py_Dataset:
         return len(self.file_paths)
 
 
+class Identity(nn.Module):
+    def __init__(self):
+        super(Identity, self).__init__()
+    def forward(self, x):
+        return x
+
+
 def extract_features(model, device, dataloader, batch_size, h5fh):
     model.eval()
     output = np.empty((len(dataloader.dataset), 512),dtype=np.float32)
@@ -46,8 +53,7 @@ def extract_features(model, device, dataloader, batch_size, h5fh):
         for i, (batch,_,_,_) in enumerate(dataloader):
             batch = batch.to(device)
             out = model(batch)
-            out = out.reshape((-1, 512))
-            output[i*batch_size : (i+1)*batch_size] = out.cpu().numpy()
+            output[i*batch_size : i*batch_size+len(batch)] = out.cpu().numpy()
             if i%100==0:
                 print("[INFO: {}]: {}/{}".format(time.strftime("%d-%b-%Y %H:%M:%S"), i*batch_size+len(batch), len(dataloader.dataset)), flush=True)
         h5fh.create_dataset('embeddings', data=output)
@@ -71,6 +77,7 @@ def main():
         ])
 
     model = MODEL_DICT[args.imagenet_model]
+    model.fc = Identity()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = nn.DataParallel(model).to(device)
 
@@ -78,7 +85,7 @@ def main():
     ## change this if your storage format is different
     file_paths = sorted(glob.glob("{}/*/*/*.png".format(args.root_dir)))
     dataset = h5py_Dataset(file_paths=file_paths, transform=transform, h5fh=h5fh)
-    dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False)
+    dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
 
     print("Extracting images from {} at {}".format(args.root_dir, args.h5py_file_path), flush=True)
     extract_features(model, device, dataloader, args.batch_size, h5fh)
