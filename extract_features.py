@@ -95,7 +95,7 @@ def main():
     dataset = h5py_Dataset(root_dir=args.root_dir, transform=transform, h5fh=h5fh)
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
 
-    print("Extracting images from {} at {}".format(args.root_dir, args.h5py_file_path), flush=True)
+    print("Extracting features from {} at {}".format(args.root_dir, args.h5py_file_path), flush=True)
     extract_features(model, device, dataloader, args.batch_size, h5fh)
     h5fh.close()
     print("FIN.", flush=True)

@@ -149,7 +149,7 @@ def training_loop(start_epoch, end_epoch, trainable_modules, model, train_datalo
 
     for epoch in range(start_epoch, end_epoch):
         train_acc = train(model, train_dataloader, optimizer, criterion, device, epoch, exp_lr_scheduler, writer)
-        torch.save(model.state_dict(), "{}_Dense_model_epoch_{}.pth".format(save_prefix, epoch))
+        torch.save(model.state_dict(), "{}_model_epoch_{}.pth".format(save_prefix, epoch))
         val_acc = test(model, val_dataloader, criterion, device, epoch, writer, save_prefix)
         writer.add_scalars('Epoch wise Accuracy', {'train_acc': train_acc, 'val_acc': val_acc}, epoch)
 
