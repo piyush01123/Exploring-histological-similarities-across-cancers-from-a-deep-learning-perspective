@@ -23,6 +23,7 @@ import os
 class h5py_Dataset:
     def __init__(self, h5py_file_path):
         self.h5fh = h5py.File(h5py_file_path, 'r')
+        self.classes = ["cancer", "normal"]
 
     def __getitem__(self, idx):
         embedding = self.h5fh["embeddings"][idx]
