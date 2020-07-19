@@ -25,15 +25,14 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 class h5py_Dataset:
     def __init__(self, h5py_file_path):
         self.h5fh = h5py.File(h5py_file_path, 'r')
+        self.classes = ["cancer", "normal"]
 
     def __getitem__(self, idx):
-        embedding = self.h5fh["embeddings"][index]
-        fp = self.h5fh["file_paths"][idx]
-        slide_id = self.h5fh["slide_ids"][idx]
+        embedding = self.h5fh["embeddings"][idx]
         label = self.h5fh["labels"][idx]
-        return embedding, fp, slide_id, label
+        return torch.from_numpy(embedding.astype(np.float32)), label
 
-    def __getitem__(self):
+    def __len__(self):
         return self.h5fh["length"].value
 
 
@@ -42,7 +41,8 @@ class DenseModel(nn.Module):
         super(DenseModel, self).__init__()
         self.fc1 = nn.Linear(512,128)
         self.fc2 = nn.Linear(128,2)
-    def super(self, x):
+
+    def forward(self, x):
         x = self.fc1(x)
         x = self.fc2(x)
         return x
@@ -57,7 +57,7 @@ def test(model, test_dataloader, device, writer, record_csv):
     df = pd.DataFrame(columns=['paths', 'slide_ids', 'targets', 'preds', 'probs'])
     with torch.no_grad():
         for batch_id, (embeddings, paths, slide_ids, targets) in enumerate(test_dataloader):
-            data, targets = data.to(device), targets.to(device)
+            data, targets = embeddings.to(device), targets.to(device)
             output = model(data)
             probs = F.softmax(output, dim=1)
             preds = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
@@ -96,9 +96,8 @@ def main():
 
     writer = SummaryWriter(log_dir=args.log_dir)
 
-    test_dataset = ModImageFolder(root=args.test_h5py_file_path)
-    nw = 4 if torch.cuda.is_available() else 0
-    test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=nw, shuffle=False)
+    test_dataset = h5py_Dataset(h5py_Dataset=args.test_h5py_file_path)
+    test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
     model = DenseModel()
     ckpt = torch.load(args.model_checkpoint)
