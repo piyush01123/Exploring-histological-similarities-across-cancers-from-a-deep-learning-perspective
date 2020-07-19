@@ -31,7 +31,11 @@ class h5py_Dataset:
         slide_id = self.h5fh["slide_ids"][idx].decode()
         label = self.h5fh["labels"][idx]
         ImageFile.LOAD_TRUNCATED_IMAGES = True
-        return self.transform(Image.open(fp)), fp, slide_id, label
+        try:
+            im = Image.open(fp)
+        except:
+            raise Exception("File {} couldnot be read".format(fp))
+        return self.transform(im), fp, slide_id, label
 
     def __len__(self):
         return len(self.file_paths)
