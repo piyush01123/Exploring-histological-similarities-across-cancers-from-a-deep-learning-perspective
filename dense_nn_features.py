@@ -38,7 +38,8 @@ class DenseModel(nn.Module):
         super(DenseModel, self).__init__()
         self.fc1 = nn.Linear(512,128)
         self.fc2 = nn.Linear(128,2)
-    def super(self, x):
+
+    def forward(self, x):
         x = self.fc1(x)
         x = self.fc2(x)
         return x
