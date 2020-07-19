@@ -79,7 +79,7 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = nn.DataParallel(model).to(device)
 
-    if os.path.isfile(h5py_file_path):
+    if os.path.isfile(args.h5py_file_path):
         os.remove(args.h5py_file_path)
 
     h5fh = h5py.File(args.h5py_file_path, 'w')
