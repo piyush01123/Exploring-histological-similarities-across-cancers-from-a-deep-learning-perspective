@@ -89,7 +89,7 @@ def main():
     h5fh = h5py.File(args.h5py_file_path, 'w')
     ## change this if your storage format is different
     file_paths = sorted(glob.glob("{}/*/*/*.png".format(args.root_dir)))
-    file_paths = [fp for fp in file_paths if os.path.isfile(f)]
+    file_paths = [fp for fp in file_paths if os.path.isfile(fp)]
     dataset = h5py_Dataset(file_paths=file_paths, transform=transform, h5fh=h5fh)
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
 
