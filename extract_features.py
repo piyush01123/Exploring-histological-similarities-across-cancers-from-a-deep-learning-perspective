@@ -10,6 +10,7 @@ import h5py
 from PIL import Image, ImageFile
 import glob
 import os
+import time
 
 
 MODEL_DICT = {"resnet18" : models.resnet18(pretrained=True)}
@@ -48,7 +49,7 @@ def extract_features(model, device, dataloader, batch_size, h5fh):
             out = out.reshape((-1, 512))
             output[i*batch_size : (i+1)*batch_size] = out.cpu().numpy()
             if i%100==0:
-                print("[Done]: {}/{}".format((i+1)*batch_size, len(dataloader.dataset)), flush=True)
+                print("[INFO: {}]: {}/{}".format(time.strftime("%d-%b-%Y %H:%M:%S"), i*batch_size+len(batch), len(dataloader.dataset)), flush=True)
         h5fh.create_dataset('embeddings', data=output)
 
 
