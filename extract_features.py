@@ -63,7 +63,7 @@ def extract_features(model, device, dataloader, batch_size, h5fh):
             output[i*batch_size : i*batch_size+len(batch)] = out.cpu().numpy()
             if i%100==0:
                 print("[INFO: {}] {}/{} Done.".format(time.strftime("%d-%b-%Y %H:%M:%S"), i*batch_size+len(batch), len(dataloader.dataset)), flush=True)
-        h5fh.create_dataset('embeddings', data=output)
+        h5fh.create_dataset('embeddings', data=output, chunks=True, compression='gzip')
 
 
 def main():
@@ -91,13 +91,14 @@ def main():
     if os.path.isfile(args.h5py_file_path):
         os.remove(args.h5py_file_path)
 
-    h5fh = h5py.File(args.h5py_file_path, 'w')
-    dataset = h5py_Dataset(root_dir=args.root_dir, transform=transform, h5fh=h5fh)
-    dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
+    with h5fh as h5py.File(args.h5py_file_path, 'w'):
+        dataset = h5py_Dataset(root_dir=args.root_dir, transform=transform, h5fh=h5fh)
+        dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
 
-    print("Extracting features from {} at {}".format(args.root_dir, args.h5py_file_path), flush=True)
-    extract_features(model, device, dataloader, args.batch_size, h5fh)
-    h5fh.close()
+        print("Extracting features from {} at {}".format(args.root_dir, args.h5py_file_path), flush=True)
+        extract_features(model, device, dataloader, args.batch_size, h5fh)
+        h5fh.close()
+
     print("FIN.", flush=True)
 
 
