@@ -65,7 +65,7 @@ def main():
 
     transform = transforms.Compose([
         transforms.Resize(256),
-        transforms.CenterCrop(image_size),
+        transforms.CenterCrop(args.image_size),
         transforms.ToTensor(),
         transforms.Normalize([0.596, 0.436, 0.586], [0.2066, 0.240, 0.186])
         ])
