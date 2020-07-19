@@ -25,13 +25,11 @@ class h5py_Dataset:
         self.h5fh = h5py.File(h5py_file_path, 'r')
 
     def __getitem__(self, idx):
-        embedding = self.h5fh["embeddings"][index]
-        fp = self.h5fh["file_paths"][idx]
-        slide_id = self.h5fh["slide_ids"][idx]
+        embedding = self.h5fh["embeddings"][idx]
         label = self.h5fh["labels"][idx]
-        return embedding, fp, slide_id, label
+        return torch.from_numpy(embedding.astype(np.float32)), label
 
-    def __getitem__(self):
+    def __len__(self):
         return self.h5fh["length"].value
 
 
@@ -50,7 +48,7 @@ def train(model, train_dataloader, optimizer, criterion, device, epoch, schedule
     model.train()
     num_batches = len(train_dataloader)
     running_correct = 0
-    for batch_id, (embeddings, file_paths, slide_ids, targets) in enumerate(train_dataloader):
+    for batch_id, (embeddings, targets) in enumerate(train_dataloader):
         data, targets = embeddings.to(device), targets.to(device)
         output = model(data)
 
@@ -82,7 +80,7 @@ def test(model, val_dataloader, criterion, device, epoch, writer, save_prefix):
     y_pred = []
     y_true = []
     with torch.no_grad():
-        for batch_id, (embeddings, file_paths, slide_ids, targets) in enumerate(val_dataloader):
+        for batch_id, (embeddings, targets) in enumerate(val_dataloader):
             data, targets = embeddings.to(device), targets.to(device)
             output = model(data)
             val_loss += criterion(output, targets).item() # sum up batch loss
@@ -174,8 +172,8 @@ def main():
     val_dataset = h5py_Dataset(h5py_file_path=args.h5py_file_path_val)
 
     sampler, class_weights = get_stratified_sampler(train_dataset)
-    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, sampler=sampler, num_workers=4, shuffle=True)
-    val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=4, shuffle=False)
+    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, sampler=sampler, shuffle=True)
+    val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
 
     model = DenseModel()
 
