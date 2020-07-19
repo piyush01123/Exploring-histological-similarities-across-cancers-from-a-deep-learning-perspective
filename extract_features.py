@@ -32,7 +32,6 @@ class h5py_Dataset:
         slide_id = self.h5fh["slide_ids"][idx].decode()
         label = self.h5fh["labels"][idx]
         ImageFile.LOAD_TRUNCATED_IMAGES = True
-        print("TYPES", type(self.transform(Image.open(fp))), fp, slide_id, label)
         return self.transform(Image.open(fp)), fp, slide_id, label
 
     def __len__(self):
@@ -41,7 +40,7 @@ class h5py_Dataset:
 
 def extract_features(model, device, dataloader, batch_size, h5fh):
     model.eval()
-    output = np.empty((len(dataloader.dataset), 512))
+    output = np.empty((len(dataloader.dataset), 512),dtype=np.float32)
     with torch.no_grad():
         for i, (batch,_,_,_) in enumerate(dataloader):
             batch = batch.to(device)
