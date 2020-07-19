@@ -15,23 +15,24 @@ import os
 MODEL_DICT = {"resnet18" : models.resnet18(pretrained=True)}
 
 
-class ImageDataset:
+class h5py_Dataset:
     def __init__(self, file_paths, transform, h5fh):
         self.file_paths = (file_paths)
         self.transform = transform
         h5fh.create_dataset('file_paths', data=np.array(file_paths, dtype='S'))
         slide_ids = [fp.split('/')[-2] for fp in file_paths]
-        labels = [0 if y=='cancer' else 1 for y in fp.split('/')[-3] for fp in file_paths]
+        labels = [0 if fp.split('/')[-3]=='cancer' else 1 for fp in file_paths]
         h5fh.create_dataset('slide_ids', data=np.array(slide_ids, dtype='S'))
         h5fh.create_dataset('labels', data=np.array(labels, dtype=int))
         h5fh.create_dataset('length', data=len(file_paths))
         self.h5fh = h5fh
 
     def __getitem__(self, idx):
-        fp = self.h5fh["file_paths"][idx]
-        slide_id = self.h5fh["slide_ids"][idx]
+        fp = self.h5fh["file_paths"][idx].decode()
+        slide_id = self.h5fh["slide_ids"][idx].decode()
         label = self.h5fh["labels"][idx]
         ImageFile.LOAD_TRUNCATED_IMAGES = True
+        print("TYPES", type(self.transform(Image.open(fp))), fp, slide_id, label)
         return self.transform(Image.open(fp)), fp, slide_id, label
 
     def __len__(self):
@@ -76,7 +77,7 @@ def main():
     h5fh = h5py.File(args.h5py_file_path, 'w')
     ## change this if your storage format is different
     file_paths = sorted(glob.glob("{}/*/*/*.png".format(args.root_dir)))
-    dataset = ImageDataset(file_paths=file_paths, transform=transform, h5fh=h5fh)
+    dataset = h5py_Dataset(file_paths=file_paths, transform=transform, h5fh=h5fh)
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False)
 
     print("Extracting images from {} at {}".format(args.root_dir, args.h5py_file_path), flush=True)
