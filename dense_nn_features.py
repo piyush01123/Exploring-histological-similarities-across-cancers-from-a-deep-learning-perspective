@@ -108,7 +108,8 @@ def test(model, val_dataloader, criterion, device, epoch, writer, save_prefix):
 
 
 def get_stratified_sampler(h5py_dataset):
-    targets, num_classes = h5py_dataset["labels"], h5py_dataset["labels"].unique().__len__()
+    targets = np.array(h5py_dataset.h5fh["labels"])
+    num_classes = len(np.unique(targets))
     class_counts = np.empty(num_classes,)
     for i in range(num_classes):
         class_counts[i] = sum(targets==i)
@@ -172,7 +173,7 @@ def main():
     val_dataset = h5py_Dataset(h5py_file_path=args.h5py_file_path_val)
 
     sampler, class_weights = get_stratified_sampler(train_dataset)
-    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, sampler=sampler, shuffle=True)
+    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, sampler=sampler)
     val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
 
     model = DenseModel()
