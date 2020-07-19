@@ -91,7 +91,7 @@ def main():
     if os.path.isfile(args.h5py_file_path):
         os.remove(args.h5py_file_path)
 
-    with h5fh as h5py.File(args.h5py_file_path, 'w'):
+    with  h5py.File(args.h5py_file_path, 'w') as h5fh:
         dataset = h5py_Dataset(root_dir=args.root_dir, transform=transform, h5fh=h5fh)
         dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
 
