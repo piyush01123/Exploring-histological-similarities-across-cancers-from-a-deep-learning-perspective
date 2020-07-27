@@ -38,10 +38,14 @@ class DenseModel(nn.Module):
     def __init__(self):
         super(DenseModel, self).__init__()
         self.fc1 = nn.Linear(512,128)
+        self.relu = nn.ReLU(inplace=True)
+        self.dropout = nn.Dropout(p=0.2)
         self.fc2 = nn.Linear(128,2)
 
     def forward(self, x):
         x = self.fc1(x)
+        x = self.relu(x)
+        x = self.dropout(x)
         x = self.fc2(x)
         return x
 
