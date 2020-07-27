@@ -14,4 +14,4 @@ df["CAN_Ratio"] = df.Cancer_Slides/df.Num_Slides
 df["Size_GB"] = df.Manifest.apply(lambda x: pd.read_csv(x,sep='\t')["size"].sum()*(2**-30))
 
 df = df.sort_values(by="Body_Organ")
-df.to_csv("summary.csv",index=False)
+df.to_csv("Manifests/summary.csv",index=False)
