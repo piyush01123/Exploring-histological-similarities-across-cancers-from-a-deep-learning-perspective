@@ -8,7 +8,7 @@
 
 source /home/$USER/v3env/bin/activate
 
-MANIFEST_DIR=/home/$USER/T1_task/partition_wise_manifests
+MANIFEST_DIR=/home/$USER/project/T1_task/partition_wise_manifests
 
 for i in {34..36}
 do
