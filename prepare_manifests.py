@@ -6,6 +6,8 @@ done = [i.split('/')[-1] for i in done]
 organs = ["Breast", "Colorectal", "Kidney", "Liver", "Lung", "Prostate", "Stomach"]
 manifests = [glob.glob(os.path.join('Manifests/', organ+"*.txt")) for organ in organs]
 manifests = [j for i in manifests for j in i]
+print(manifests)
+
 df = [pd.read_csv(fp, sep='\t') for fp in manifests]
 df = pd.concat(df)
 print(df.shape)
