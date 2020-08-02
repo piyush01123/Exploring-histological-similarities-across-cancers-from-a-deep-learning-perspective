@@ -6,11 +6,11 @@
 ##SBATCH --mail-type=END
 
 
+rm -rf /scratch/piyush
 source /home/$USER/v3env/bin/activate
-
 MANIFEST_DIR=/home/$USER/project/T1_task/partition_wise_manifests
 
-for i in {28..30}
+for i in {18..20}
 do
   echo Downloading Partition $i;
   mkdir -p /scratch/piyush/RAW_Partition_$i;
