@@ -1,5 +1,5 @@
 
-import os, glob, pandas as pd
+import os, shutil, glob, pandas as pd
 done = open("done.txt", 'r').read().split('\n')
 done = [i.split('/')[-1] for i in done]
 
@@ -17,7 +17,10 @@ unfinished = df[~df.filename.isin(done)]
 unfinished = unfinished.reset_index(drop=True)
 print(finished.shape, unfinished.shape)
 
+shutil.rmtree('partition_wise_manifests')
+os.mkdir('partition_wise_manifests')
+
 for i in range(len(unfinished)//100+1):
     print("Partition", i)
     subset = unfinished.iloc[100*i:100*(i+1)]
-    subset.to_csv("Partition_{}".format(i),sep='\t',index=False)
+    subset.to_csv("partition_wise_manifests/TCGA_partition_{}".format(i),sep='\t',index=False)
