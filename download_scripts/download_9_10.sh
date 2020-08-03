@@ -10,7 +10,7 @@ rm -rf /scratch/piyush
 source /home/$USER/v3env/bin/activate
 MANIFEST_DIR=/home/$USER/project/T1_task/partition_wise_manifests
 
-for i in {15..17}
+for i in {9,10}
 do
   echo Downloading Partition $i;
   mkdir -p /scratch/piyush/RAW_Partition_$i;
