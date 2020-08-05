@@ -6,13 +6,14 @@
 ##SBATCH --mail-type=END
 
 
-rm -rf /scratch/piyush
 source /home/$USER/v3env/bin/activate
 MANIFEST_DIR=/home/$USER/project/T1_task/partition_wise_manifests
 
-for i in {11,12}
+for i in {2,}
 do
   echo Downloading Partition $i;
+  rm -rf /scratch/piyush/RAW_Partition_$i;
+  rm -rf /scratch/piyush/SVS_Partition_$i;
   mkdir -p /scratch/piyush/RAW_Partition_$i;
   mkdir -p /scratch/piyush/SVS_Partition_$i;
   gdc-client download -n 10 -m $MANIFEST_DIR/TCGA_partition_$i --dir /scratch/piyush/RAW_Partition_$i/;
