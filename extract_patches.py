@@ -62,9 +62,10 @@ def create_patches(slide_fp, level, patch_size, whiteness_limit, blackness_limit
                 ctr += 1
 
         # Image.fromarray(np.swapaxes(im_slide,1,0)).save(os.path.join(extras_dir, "full_slides", "{}.png".format(slide_id)))
-        thumbnail = slide.get_thumbnail((1024,1024)) # Gets automatically resized as per aspect ratio
-        thumbnail.save(os.path.join(extras_dir,"thumbnails","{}.jpg".format(slide_id)),format="jpeg")
-        print("[Time] {} Slide {} Grade {} Dimensions W={} H={}, #Patches={} acc {} rej total {}".format(time.strftime("%d-%b-%Y %H:%M:%S"),filename,grade,W,H,ctr,ctr_rej,ctr+ctr_rej), flush=True)
+        # thumbnail = slide.get_thumbnail((1024,1024)) # Gets automatically resized as per aspect ratio
+        # thumbnail.save(os.path.join(extras_dir,"thumbnails","{}.jpg".format(slide_id)),format="jpeg")
+
+        print("[{}] Slide {} Grade {} Dimensions W={} H={}, #Patches={} acc {} rej total {}".format(time.strftime("%d-%b-%Y %H:%M:%S"),filename,grade,W,H,ctr,ctr_rej,ctr+ctr_rej), flush=True)
 
     except:
         print("[Time] {} {} Not Done.".format(time.strftime("%d-%b-%Y %H:%M:%S"),slide_fp))
@@ -84,10 +85,10 @@ def main():
     parser.add_argument("--min_conn_comp", type=int, default=10, help="Min allowed number of connected components")
 
     args = parser.parse_args()
-    os.makedirs(os.path.join(args.extras_dir, "thumbnails"), exist_ok=True)
+    # os.makedirs(os.path.join(args.extras_dir, "thumbnails"), exist_ok=True)
 
     ## change this if your storage format is different
-    file_pattern = "{}/subset_*/*/*.svs".format(args.root_dir)
+    file_pattern = os.path.join(args.root_dir, "*.svs")
     slide_files = glob.glob(file_pattern)
 
     pool = Pool(multiprocessing.cpu_count())
