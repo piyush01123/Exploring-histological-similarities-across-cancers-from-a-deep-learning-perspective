@@ -10,7 +10,6 @@ import torch
 import torchvision
 from PIL import Image
 import argparse
-import copy
 from sklearn.metrics import classification_report
 import sklearn.metrics as metrics
 from PIL import Image

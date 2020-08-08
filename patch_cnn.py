@@ -15,7 +15,6 @@ from sklearn.metrics import classification_report
 import sklearn.metrics as metrics
 from PIL import Image
 import numpy as np
-import matplotlib.pyplot as plt
 import os
 
 
