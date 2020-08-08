@@ -1,6 +1,6 @@
 # T1_task
 
-Code for Patch-CNN which I wrote earlier to match Sairam's results:
+Old code for Patch-CNN which I wrote earlier to match Sairam's results:
 
 <https://github.com/piyush-kgp/RCC-classifcation-and-survival-prediction-from-histopathology-images-using-deep-learning>
 
@@ -85,3 +85,51 @@ Code for Patch-CNN which I wrote earlier to match Sairam's results:
   </tr>
 </tbody>
 </table>
+
+
+# T1.1: Patch CNN training and inference for any subtype
+
+> Note: See `sbatch_scripts`  for running end-to-end.
+
+Step 0: Install required libraries:
+
+If you use `pip`:
+```
+pip install virtualenv
+python3.5 -m virtualenv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+If you use `anaconda`:
+```
+conda create -n venv python=3.5 anaconda
+source activate yourenvname
+pip install -r requirements.txt
+```
+
+Step 1: Move SVS files from storage server
+
+Step 2: Patch extraction
+
+Step 3: Divide into train,val,test
+
+Step 4: Patch extraction
+
+Step 5: Training and validation
+
+Step 6: Inference
+
+Step 7: MIL pooling (Useful for T2/T3 tasks)
+
+# T1.2: t-SNE plot of embeddings colored by subtype and correlation matrix
+
+Step 1: Save embeddings to HDF5 file.
+
+Step 2: Generate plots.
+
+# T1.3: Cross-subtype inference
+TODO
+
+# T1.4: Inference on other datasets
+TODO
