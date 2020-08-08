@@ -29,7 +29,7 @@ class ModImageFolder(datasets.ImageFolder):
         return img, label, path
 
 
-def test(model, test_dataloader, device, writer):
+def test(model, test_dataloader, device, writer, record_csv):
     model.eval()
     correct = 0
     y_pred = []
@@ -63,7 +63,7 @@ def test(model, test_dataloader, device, writer):
     classes = test_dataloader.dataset.classes
     report = classification_report(y_true, y_pred, target_names=classes, output_dict=True, digits=4)
     print(report, flush=True)
-    df.to_csv('record.csv', index=False)
+    df.to_csv(record_csv, index=False)
 
 
 def main():
@@ -73,7 +73,9 @@ def main():
     parser.add_argument("--image_size", type=int, default=224)
     parser.add_argument("--log_dir", type=str, default="logs/")
     parser.add_argument("--model_checkpoint", type=str, required=True)
+    parser.add_argument("--record_csv", type=str, required=True)
     args = parser.parse_args()
+    print(args, flush=True)
 
     writer = SummaryWriter(log_dir=args.log_dir)
 
@@ -103,7 +105,7 @@ def main():
     print("DEVICE {}".format(device), flush=True)
     model = nn.DataParallel(model).to(device)
 
-    test(model, test_dataloader, device, writer)
+    test(model, test_dataloader, device, writer, args.record_csv)
 
 
 if __name__=="__main__":
