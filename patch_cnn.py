@@ -27,6 +27,7 @@ def train(model, train_dataloader, optimizer, criterion, device, epoch, schedule
     num_batches = len(train_dataloader)
     model.train()
     running_correct = 0
+    running_loss = 0
     for batch_id, (data, target) in enumerate(train_dataloader):
         data, target = data.to(device), target.to(device)
         output = model(data)
@@ -39,11 +40,11 @@ def train(model, train_dataloader, optimizer, criterion, device, epoch, schedule
         correct = pred.eq(target.view_as(pred)).sum().item()
         running_correct += correct
         batch_size = len(data)
-        running_loss = loss.item()/batch_size
+        running_loss += loss.item()*batch_size
         print("[Train] Epoch: {} [{}/{}]    Loss: {:.6f}   Batch Acc: {:.2f}".format(
               epoch, (batch_id+1)*batch_size, len(train_dataloader.dataset),
-              running_loss, correct/batch_size*100), flush=True)
-        writer.add_scalar('Loss/Train', running_loss, num_batches*epoch+batch_id)
+              loss.item(), correct/batch_size*100), flush=True)
+        writer.add_scalar('Loss/Train', loss.item(), num_batches*epoch+batch_id)
         writer.add_scalar('Accuracy/Train', correct/batch_size*100, num_batches*epoch+batch_id)
     epoch_acc = running_correct/len(train_dataloader.dataset)*100
     epoch_loss = running_loss/len(train_dataloader.dataset)
@@ -111,7 +112,6 @@ def handle_trainable_params(model, trainable_modules):
 def training_loop(start_epoch, end_epoch, trainable_modules, model, train_dataloader, \
         val_dataloader, criterion, batch_size, learning_rate, num_epochs, save_prefix, device, writer):
     model = handle_trainable_params(model, trainable_modules)
-    print(model, flush=True)
 
     trainable_params = []
     for module in trainable_modules:
@@ -147,6 +147,7 @@ def main():
     parser.add_argument("--model_checkpoint", type=str, required=False)
 
     args = parser.parse_args()
+    print(args, flush=True)
 
     writer = SummaryWriter(log_dir=args.log_dir)
 
@@ -177,6 +178,7 @@ def main():
                 nn.Dropout(p=0.2), # p is prob. of a neuron not being dropped out
                 nn.Linear(model.fc.in_features, len(train_dataset.classes))
                 )
+    print(model, flush=True)
 
     if args.model_checkpoint is not None:
         # IMP: This is because checkpoint dictionary has "module." in each key
@@ -189,23 +191,21 @@ def main():
     class_weights = torch.from_numpy(class_weights/sum(class_weights)).to(torch.float32).to(device)
     criterion = nn.CrossEntropyLoss(weight=class_weights)
 
-    # trainable_modules = [model.fc]
-    # training_loop(0, num_epochs, trainable_modules)
-
-    # trainable_modules = [model.fc, model.layer4[1]]
-    # training_loop(0, args.num_epochs, trainable_modules, model, train_dataloader, \
-    #         val_dataloader, criterion, args.batch_size, args.learning_rate, args.num_epochs, args.save_prefix, device, writer)
-
-    # trainable_modules = [model.fc, model.layer4[1], model.layer4[0]]
-    # training_loop(0, num_epochs, trainable_modules)
-
-    # trainable_modules = [model.fc, model.layer4[1], model.layer4[0], model.layer3[1]]
-    # training_loop(0, num_epochs, trainable_modules)
-
-    trainable_modules = [model.fc, model.layer4, model.layer3, model.layer2, model.layer1, model.bn1, model.conv1]
-    training_loop(11, args.num_epochs, trainable_modules, model, train_dataloader, \
+    trainable_modules = [model.fc, model.layer4]
+    print("Training Layers fc, layer4", flush=True)
+    training_loop(0, args.num_epochs//3, trainable_modules, model, train_dataloader, \
             val_dataloader, criterion, args.batch_size, args.learning_rate, args.num_epochs, args.save_prefix, device, writer)
-    
+
+    print("Training Layers fc, layer4, layer3, layer2", flush=True)
+    trainable_modules = [model.fc, model.layer4, model.layer3, model.layer2]
+    training_loop(args.num_epochs//3, 2*args.num_epochs//3, trainable_modules, model, train_dataloader, \
+            val_dataloader, criterion, args.batch_size, args.learning_rate, args.num_epochs, args.save_prefix, device, writer)
+
+    print("Training Layers fc, layer4, layer3, layer2, layer1, bn1, conv1", flush=True)
+    trainable_modules = [model.fc, model.layer4, model.layer3, model.layer2, model.layer1, model.bn1, model.conv1]
+    training_loop(2*args.num_epochs//3, args.num_epochs, trainable_modules, model, train_dataloader, \
+            val_dataloader, criterion, args.batch_size, args.learning_rate, args.num_epochs, args.save_prefix, device, writer)
+
 
 
 if __name__=="__main__":
