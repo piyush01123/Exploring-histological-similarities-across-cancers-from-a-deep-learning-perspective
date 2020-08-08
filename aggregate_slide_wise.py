@@ -4,13 +4,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 import json
 import argparse
-
+import os
 
 def main():
     parser = argparse.ArgumentParser('Slide Decision Aggregator')
     parser.add_argument("--record_file", help="Record CSV file", required=True)
     parser.add_argument("--dest_dir", help="Destination Directory to save results", required=True)
     args = parser.parse_args()
+
+    if not os.path.isdir(args.dest_dir):
+        os.mkdir(args.dest_dir)
 
     df = pd.read_csv(args.record_file)
     result_df = df.groupby("slide_ids", as_index=False).sum()[["slide_ids", "targets", "preds"]]
@@ -43,6 +46,7 @@ def main():
                }
 
     performances = {"VOTING": get_performance(*get_conf_mat("pred_vote")), "MIL": get_performance(*get_conf_mat("pred_mil"))}
+    result_df = result_df[["slide_ids","targets","num_tiles","num_tiles_pred_cancer","num_tiles_pred_normal","tumor_fraction","pred_vote","pred_mil"]]
 
     result_df.to_csv(os.path.join(args.dest_dir, 'slide_summary.csv'), index=False)
     with open(os.path.join(args.dest_dir, "conf_mats.json"), 'w') as fh:
