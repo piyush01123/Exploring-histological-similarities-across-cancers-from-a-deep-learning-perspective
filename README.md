@@ -1,11 +1,6 @@
-# T1_task
+# Task T1
 
-Old code for Patch-CNN which I wrote earlier to match Sairam's results:
-
-<https://github.com/piyush-kgp/RCC-classifcation-and-survival-prediction-from-histopathology-images-using-deep-learning>
-
-
-# Organs selected for T1 task in our Abstract
+## Organs selected for T1 task in our Abstract
 
 <table style="text-align: center">
 <thead>
@@ -87,7 +82,7 @@ Old code for Patch-CNN which I wrote earlier to match Sairam's results:
 </table>
 
 
-# T1.1: Patch CNN training and inference for any subtype
+## T1.1: Patch CNN training and inference for any subtype
 
 > Note: See `sbatch_scripts`  for running end-to-end.
 
@@ -122,14 +117,21 @@ Step 6: Inference
 
 Step 7: MIL pooling (Useful for T2/T3 tasks)
 
-# T1.2: t-SNE plot of embeddings colored by subtype and correlation matrix
+## T1.2: t-SNE plot of embeddings colored by subtype and correlation matrix
 
-Step 1: Save embeddings to HDF5 file.
+Step 1: Save embeddings to HDF5 file
 
-Step 2: Generate plots.
+Step 2: Generate plots
 
-# T1.3: Cross-subtype inference
+## T1.3: Cross-subtype inference
 TODO
 
-# T1.4: Inference on other datasets
+## T1.4: Inference on other datasets
 TODO
+
+
+---
+
+Link to old code for Patch-CNN which I wrote earlier to match Sairam's results:
+
+<https://github.com/piyush-kgp/RCC-classifcation-and-survival-prediction-from-histopathology-images-using-deep-learning>
