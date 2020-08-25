@@ -56,17 +56,17 @@ class VisualizeMaps:
         if self.mode == "IntGrads":
             #print("Getting IG attributions")
             ig = IntegratedGradients(self.model)
-            attr, delta = ig.attribute(in_tensor,target=0, baselines = torch.ones_like(in_tensor).cuda(), return_convergence_delta=True)
+            attr, delta = ig.attribute(in_tensor,target=out_tensor[:,0], baselines = torch.ones_like(in_tensor).cuda(), return_convergence_delta=True)
         elif self.mode == "Occlusion":
             occlusion = Occlusion(self.model)
-            attr = occlusion.attribute(in_tensor, strides = (3, 4, 4), target=0, sliding_window_shapes=(3, 15, 15), baselines=0)
+            attr = occlusion.attribute(in_tensor, strides = (3, 4, 4), target=out_tensor[:,0], sliding_window_shapes=(3, 15, 15), baselines=0)
         elif self.mode == "GradCAM":
             layer_gc = LayerGradCam(self.model, self.model.module.layer4)
-            attr = layer_gc.attribute(in_tensor, 0)
+            attr = layer_gc.attribute(in_tensor, out_tensor[:,0])
             attr = LayerAttribution.interpolate(attr, (in_tensor.size()[2], in_tensor.size()[3]))
         elif self.mode == "GuidedGradCAM":
             layer_gc = GuidedGradCam(self.model, self.model.module.layer4)
-            attr = layer_gc.attribute(in_tensor, 0)
+            attr = layer_gc.attribute(in_tensor, out_tensor[:,0])
 
         attr = attr.detach().cpu().numpy()
         #print("Attribution shapes: ", attr.shape)
@@ -114,6 +114,8 @@ def test(model, test_dataloader, device, writer, args, baseline=None):
     test_dir = args.test_dir
     visu_mode = args.visu_mode
     NUM_IMGS = args.num_images
+    if args.num_images == -1:
+        NUM_IMGS = len(test_dataloader.dataset)
     model.eval()
     correct = 0
     y_pred = []
@@ -122,9 +124,43 @@ def test(model, test_dataloader, device, writer, args, baseline=None):
     df = pd.DataFrame(columns=['paths', 'slide_ids', 'targets', 'preds', 'probs'])
     visMaps = VisualizeMaps(model, visu_mode, test_dir, baseline)
     with torch.no_grad():
-        img_idx = 0
+        cancer_img_idx = 0
+        normal_img_idx = 0
         for batch_id, (data, targets, paths) in enumerate(test_dataloader):
-
+            num_cancer = np.count_nonzero(targets == 0)
+            if num_cancer > 0:
+                cancer_img_idx = cancer_img_idx + num_cancer
+            else:
+                continue
+            data, targets = data.to(device), targets.to(device)
+            output = model(data)
+            probs = F.softmax(output, dim=1)
+            preds = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
+            #print("Test data shapes:",data.size(), targets.size(), preds.size() )
+            # Call the visualization code and visualize the activation maps
+            visMaps.visualize(data, preds, targets, paths)
+            pred_class_probs = probs[torch.arange(len(preds))[:,None],preds].squeeze(1)
+            df_batch = pd.DataFrame({'paths': list(paths),
+                                     'slide_ids': [p.split('/')[-2] for p in paths],
+                                     'targets': targets.tolist(),
+                                     'preds': preds.squeeze(1).tolist(),
+                                     'probs': pred_class_probs.tolist(),
+                                    })
+            df = df.append(df_batch)
+            y_pred.append(output.argmax(dim=1))
+            y_true.append(targets)
+            correct += preds.eq(targets.view_as(preds)).sum().item()
+            print("Act. and Pred. : ", y_true, y_pred, list(paths))
+            print('[{}/{}] Done'.format((batch_id+1)*len(data),len(test_dataloader.dataset)), flush=True)
+            #img_idx = img_idx + len(data)
+            if cancer_img_idx >= NUM_IMGS:
+                break
+        for batch_id, (data, targets, paths) in enumerate(test_dataloader):
+            num_normal = np.count_nonzero(targets == 1)
+            if num_normal > 0:
+                normal_img_idx = normal_img_idx + num_normal
+            else:
+                continue
             data, targets = data.to(device), targets.to(device)
             output = model(data)
             probs = F.softmax(output, dim=1)
@@ -143,13 +179,13 @@ def test(model, test_dataloader, device, writer, args, baseline=None):
             y_pred.append(output.argmax(dim=1))
             y_true.append(targets)
             correct += preds.eq(targets.view_as(preds)).sum().item()
-            #print("Act. and Pred. : ", y_true, y_pred, list(paths), targets.tolist())
+            print("Act. and Pred. : ", y_true, y_pred, list(paths))
             print('[{}/{}] Done'.format((batch_id+1)*len(data),len(test_dataloader.dataset)), flush=True)
-            img_idx = img_idx + len(data)
-            if img_idx >= NUM_IMGS:
+            #img_idx = img_idx + len(data)
+            if normal_img_idx >= NUM_IMGS:
                 break
-    test_acc = 100.*correct/NUM_IMGS
-    print("Test set: Accuracy: {}/{} ({:.2f}%)".format(correct, NUM_IMGS, test_acc), flush=True)
+    test_acc = 100.*correct/(2*NUM_IMGS)
+    print("Test set: Accuracy: {}/{} ({:.2f}%)".format(correct, 2*NUM_IMGS, test_acc), flush=True)
 
     y_true, y_pred = torch.cat(y_true).cpu().numpy(), torch.cat(y_pred).cpu().numpy()
     classes = test_dataloader.dataset.classes
