@@ -59,7 +59,7 @@ def define_model(trial,num_classes=2):
     # We optimize the number of layers, hidden untis and dropout ratio in each layer.
     n_layers = trial.suggest_int("n_layers", 1, 3)
     layers = []
-    model = MODEL_DICT[args.imagenet_model]
+    model = models.resnet18(pretrained=True)
     in_features = model.fc.in_features
     for i in range(n_layers):
         out_features = trial.suggest_int("n_units_l{}".format(i), 4, 128)
