@@ -11,7 +11,8 @@ module load cuda/10.0
 module load cudnn/7.3-cuda-10.0
 
 subtype="STAD"
-ae
+source ~/v3env/source/bin/activate
+
 
 mkdir -p /ssd_scratch/cvit/piyush/${subtype}/SLIDES
 
