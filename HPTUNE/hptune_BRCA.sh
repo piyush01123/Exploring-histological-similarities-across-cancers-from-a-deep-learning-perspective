@@ -33,6 +33,7 @@ python divide.py \
   --test_dir /ssd_scratch/cvit/piyush/${subtype}/test/
 
 
+cd ..
 
 python get_expt_data.py \
   --data_dir /ssd_scratch/cvit/piyush/${subtype}/train/ \

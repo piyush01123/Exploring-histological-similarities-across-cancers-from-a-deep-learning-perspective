@@ -34,6 +34,7 @@ rsync -zaPq ecdp2020@10.4.16.73:TCGA_PATCHES/${subtype}/ /ssd_scratch/cvit/piyus
 #   --test_dir /ssd_scratch/cvit/piyush/${subtype}/test/
 
 
+cd ..
 
 python get_expt_data.py \
   --data_dir /ssd_scratch/cvit/piyush/${subtype}/train/ \

@@ -20,6 +20,7 @@ mkdir -p ./${subtype}_hyper_para_tuning/
 
 # rsync -zaPq ecdp2020@10.4.16.73:TCGA/${subtype}/ /ssd_scratch/cvit/piyush/${subtype}/SLIDES/
 rsync -zaPq ecdp2020@10.4.16.73:TCGA/${subtype}/ /ssd_scratch/cvit/piyush/${subtype}/SLIDES/
+cd ..
 
 python extract_patches.py \
   --root_dir /ssd_scratch/cvit/piyush/${subtype}/SLIDES/ \
