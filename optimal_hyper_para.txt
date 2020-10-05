@@ -1,0 +1,36 @@
+LUAD:
+
+Trial 10 finished with value: 94.66547169076102 and parameters: {'n_units_l0': 11, 'n_units_l1': 127, 'dropout_l1': 0.21644319500667114, 'lr': 0.000443123860947793, 'n_layers': 3, 'dropout_l0': 0.2710437523297514, 'n_units_l2': 6, 'dropout_l2': 0.4907440672692972, 'optimizer': 'Adam'}. Best is trial 10 with value: 94.66547169076102.
+
+KICH:
+
+Trial 13 finished with value: 97.35559742706776 and parameters: {'optimizer': 'Adam', 'n_layers': 2, 'lr': 0.00034174604486655424, 'dropout_l1': 0.2590922048730916, 'dropout_l0': 0.4508962491601658, 'n_units_l0': 85, 'n_units_l1': 128}. Best is trial 13 with value: 97.35559742706776.
+
+
+KIRC:
+
+Trial 14 finished with value: 97.5204081632653 and parameters: {'dropout_l0': 0.23949940999396052, 'optimizer': 'Adam', 'lr': 7.340640278726522e-05, 'dropout_l1': 0.23075402550504015, 'n_layers': 2, 'n_units_l0': 90, 'n_units_l1': 60}. Best is trial 14 with value: 97.5204081632653.
+
+
+
+COAD:
+
+Trial 53 finished with value: 97.01989477145676 and parameters: {'n_layers': 2, 'n_units_l0': 51, 'dropout_l0': 0.3633901781496375, 'n_units_l1': 96, 'dropout_l1': 0.24938970860378834, 'optimizer': 'RMSprop', 'lr': 9.325098201927569e-05}. Best is trial 53 with value: 97.01989477145676
+
+
+KIRP:
+
+trial#78 with value: 98.15442333292992 with parameters: {'optimizer': 'Adam', 'n_units_l0': 101, 'lr': 0.0001821856779144607, 'n_units_l1': 127, 'dropout_l0': 0.20045233657011846, 'n_layers': 2, 'dropout_l1': 0.24987265944230833}.
+
+
+READ:
+
+trial#39 with value: 97.93006430868168 with parameters: {'n_units_l1': 4, 'n_layers': 3, 'n_units_l2': 101, 'optimizer': 'Adam', 'lr': 0.00010345081363438437, 'dropout_l1': 0.32566024092209167, 'n_units_l0': 114, 'dropout_l0': 0.3736031169357898, 'dropout_l2': 0.4320328109269479}. 
+
+
+LIHC:
+Trial 23 finished with value: 99.43958563301351 and parameters: {'lr': 0.000305882784838735, 'n_units_l1': 46, 'n_layers': 2, 'dropout_l1': 0.33086051605996936, 'dropout_l0': 0.3992380294683205, 'n_units_l0': 30, 'optimizer': 'Adam'}. Best is trial 23 with value: 99.43958563301351
+
+
+LUSC:
+Trial 28 finished with value: 93.68252516010979 and parameters: {'dropout_l0': 0.38297055603677094, 'lr': 0.0001059503426671974, 'dropout_l2': 0.3835156627168598, 'dropout_l1': 0.45973100141869466, 'n_units_l1': 12, 'n_units_l0': 85, 'optimizer': 'Adam', 'n_units_l2': 26, 'n_layers': 3}. Best is trial 28 with value: 93.68252516010979
