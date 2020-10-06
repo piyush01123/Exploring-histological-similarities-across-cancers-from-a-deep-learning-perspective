@@ -159,7 +159,7 @@ def handle_trainable_params(model, trainable_modules):
 
 
 def training_loop(start_epoch, end_epoch, trainable_modules, model, train_dataloader, \
-        val_dataloader, criterion, batch_size, learning_rate, num_epochs, save_prefix, model_save_path, device, writer,optimizer_name,lr):
+        val_dataloader, criterion, batch_size, learning_rate, num_epochs, save_prefix, model_save_path, device, writer,optimizer_name,lr,trial_num):
     model = handle_trainable_params(model, trainable_modules)
 
     trainable_params = []
@@ -174,7 +174,7 @@ def training_loop(start_epoch, end_epoch, trainable_modules, model, train_datalo
     best_val_acc = 0
     for epoch in range(start_epoch, end_epoch):
         train_acc = train(model, train_dataloader, optimizer, criterion, device, epoch, exp_lr_scheduler, writer)
-        # torch.save(model.state_dict(), "{}/{}_model_epoch_{}.pth".format(model_save_path,save_prefix, epoch))
+        torch.save(model.state_dict(), "{}/{}_HPTrial_{}_Ep_{}_{}.pth".format(model_save_path,save_prefix,trial_num,epoch))
         val_acc = test(model, val_dataloader, criterion, device, epoch, writer, save_prefix)
         writer.add_scalars('Epoch wise Accuracy', {'train_acc': train_acc, 'val_acc': val_acc}, epoch)
         if val_acc>best_val_acc:
@@ -213,7 +213,7 @@ def objective(trial):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     class_weights = torch.from_numpy(class_weights/sum(class_weights)).to(torch.float32).to(device)
     criterion = nn.CrossEntropyLoss(weight=class_weights)
-    
+
     optimizer_name = trial.suggest_categorical("optimizer", ["Adam", "RMSprop", "SGD"])
     lr = trial.suggest_float("lr", 1e-5, 1e-1, log=True)
 
@@ -221,7 +221,7 @@ def objective(trial):
 
     trainable_modules = [model.fc, model.layer4, model.layer3, model.layer2, model.layer1, model.bn1, model.conv1]
     val_acc = training_loop(0, args.num_epochs, trainable_modules, model, train_dataloader, \
-            val_dataloader, criterion, args.batch_size, args.learning_rate, args.num_epochs, args.save_prefix,args.model_save_path, device, writer,optimizer_name,lr)
+            val_dataloader, criterion, args.batch_size, args.learning_rate, args.num_epochs, args.save_prefix,args.model_save_path, device, writer,optimizer_name,lr,trial.number)
 
     return val_acc
 
@@ -246,4 +246,3 @@ if __name__=="__main__":
     print("  Params: ")
     for key, value in trial.params.items():
         print("    {}: {}".format(key, value))
-
