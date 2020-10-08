@@ -22,6 +22,43 @@ MODEL_DICT = {"resnet18" : models.resnet18(pretrained=True),
               "resnet34" : models.resnet34(pretrained=True)
              }
 
+def get_hyperpara(organ):
+    organ_parameters = {}
+    organ_parameters['LUAD'] = {'dropout_l1': 0.40199979514662076, 'lr': 0.022804111060047597, 'n_layers': 2, 'dropout_l0': 0.2494019459238684, 'n_units_l0': 56, 'optimizer': 'SGD', 'n_units_l1': 72}
+    organ_parameters['KICH'] = {'optimizer': 'Adam', 'n_layers': 2, 'lr': 0.00034174604486655424, 'dropout_l1': 0.2590922048730916, 'dropout_l0': 0.4508962491601658, 'n_units_l0': 85, 'n_units_l1': 128}
+    organ_parameters['KIRC'] = {'dropout_l0': 0.23949940999396052, 'optimizer': 'Adam', 'lr': 7.340640278726522e-05, 'dropout_l1': 0.23075402550504015, 'n_layers': 2, 'n_units_l0': 90, 'n_units_l1': 60}
+    organ_parameters['COAD'] = {'n_layers': 2, 'n_units_l0': 51, 'dropout_l0': 0.3633901781496375, 'n_units_l1': 96, 'dropout_l1': 0.24938970860378834, 'optimizer': 'RMSprop', 'lr': 9.325098201927569e-05}    
+    organ_parameters['KIRP'] = {'optimizer': 'Adam', 'n_units_l0': 101, 'lr': 0.0001821856779144607, 'n_units_l1': 127, 'dropout_l0': 0.20045233657011846, 'n_layers': 2, 'dropout_l1': 0.24987265944230833}
+    organ_parameters['READ'] = {'n_units_l1': 4, 'n_layers': 3, 'n_units_l2': 101, 'optimizer': 'Adam', 'lr': 0.00010345081363438437, 'dropout_l1': 0.32566024092209167, 'n_units_l0': 114, 'dropout_l0': 0.3736031169357898, 'dropout_l2': 0.4320328109269479}
+    organ_parameters['LIHC'] = {'lr': 0.000305882784838735, 'n_units_l1': 46, 'n_layers': 2, 'dropout_l1': 0.33086051605996936, 'dropout_l0': 0.3992380294683205, 'n_units_l0': 30, 'optimizer': 'Adam'}
+    organ_parameters['LUSC'] = {'dropout_l0': 0.36601040402058993, 'lr': 0.00012063189382769252, 'dropout_l2': 0.23198155500094464, 'dropout_l1': 0.46238255107808696, 'n_units_l1': 5, 'n_units_l0': 128, 'optimizer': 'Adam', 'n_units_l2': 79, 'n_layers': 3}
+    
+    dropouts = []
+    hidden_layer_units = []
+    for i in range(organ_parameters[organ]['n_layers']):
+        dropouts.append(organ_parameters[organ]['dropout_l{}'.format(i)])
+        hidden_layer_units.append(organ_parameters[organ]['n_units_l{}'.format(i)])
+    optimizer = organ_parameters[organ]['optimizer']
+    lr = organ_parameters[organ]['lr']
+    return dropouts,hidden_layer_units,optimizer,lr
+
+def define_model(dropouts,hidden_layer_units,num_classes=2):
+    # We optimize the number of layers, hidden untis and dropout ratio in each layer.
+    layers = []
+    model = models.resnet18(pretrained=True)
+    in_features = model.fc.in_features
+    for i in range(len(dropouts)):
+        out_features = hidden_layer_units[i]
+        layers.append(nn.Linear(in_features, out_features))
+        layers.append(nn.ReLU())
+        p = dropouts[i]
+        layers.append(nn.Dropout(p))
+        in_features = out_features
+    layers.append(nn.Linear(in_features, num_classes))
+    model.fc = nn.Sequential(*layers)
+    return model
+
+
 def train(model, train_dataloader, optimizer, criterion, device, epoch, scheduler, writer):
     num_batches = len(train_dataloader)
     model.train()
@@ -39,15 +76,17 @@ def train(model, train_dataloader, optimizer, criterion, device, epoch, schedule
         correct = pred.eq(target.view_as(pred)).sum().item()
         running_correct += correct
         batch_size = len(data)
-        running_loss += loss.item()*batch_size
-        print("[Train] Epoch: {} [{}/{}]    Loss: {:.6f}   Batch Acc: {:.2f}".format(
-              epoch, (batch_id+1)*batch_size, len(train_dataloader.dataset),
-              loss.item(), correct/batch_size*100), flush=True)
+        running_loss += loss.item()*data.shape[0]
+        # print("[Train] Epoch: {} [{}/{}]    Loss: {:.6f}   Batch Acc: {:.2f}".format(
+        #       epoch, (batch_id+1)*batch_size, len(train_dataloader.dataset),
+        #       loss.item(), correct/batch_size*100), flush=True)
         writer.add_scalar('Loss/Train', loss.item(), num_batches*epoch+batch_id)
         writer.add_scalar('Accuracy/Train', correct/batch_size*100, num_batches*epoch+batch_id)
     epoch_acc = running_correct/len(train_dataloader.dataset)*100
     epoch_loss = running_loss/len(train_dataloader.dataset)
     scheduler.step(epoch_loss)
+    print('train_epoch_loss:{}'.format(epoch_loss))
+    print('Train_epoch_acc:{}'.format(epoch_acc))
     return epoch_acc
 
 
@@ -66,8 +105,8 @@ def test(model, val_dataloader, criterion, device, epoch, writer, save_prefix):
             y_pred.append(output.argmax(dim=1))
             y_true.append(target)
             correct += pred.eq(target.view_as(pred)).sum().item()
-            print("Validation Done: [{}/{}]".format((batch_id+1)*len(data), \
-                  len(val_dataloader.dataset)), flush=True)
+            # print("Validation Done: [{}/{}]".format((batch_id+1)*len(data), \
+            #       len(val_dataloader.dataset)), flush=True)
 
     val_loss /= len(val_dataloader.dataset)
 
@@ -109,24 +148,28 @@ def handle_trainable_params(model, trainable_modules):
 
 
 def training_loop(start_epoch, end_epoch, trainable_modules, model, train_dataloader, \
-        val_dataloader, criterion, batch_size, learning_rate, num_epochs, save_prefix, device, writer):
+        val_dataloader, criterion, batch_size, learning_rate, num_epochs, save_prefix, model_save_path, device, writer,optimizer_name,lr):
     model = handle_trainable_params(model, trainable_modules)
 
     trainable_params = []
     for module in trainable_modules:
         trainable_params.extend(list(module.parameters()))
 
-    optimizer = optim.Adam(params=trainable_params, lr=learning_rate, weight_decay=0.05)
+    optimizer = getattr(optim, optimizer_name)(trainable_params, lr=lr)
+    # optimizer = optim.Adam(params=trainable_params, lr=learning_rate, weight_decay=0.05)
     exp_lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=2, verbose=True, factor = 0.2)
 
     print("DEVICE {}".format(device), flush=True)
     model = nn.DataParallel(model).to(device)
-
+    best_val_acc = 0
     for epoch in range(start_epoch, end_epoch):
         train_acc = train(model, train_dataloader, optimizer, criterion, device, epoch, exp_lr_scheduler, writer)
-        torch.save(model.state_dict(), "{}_model_epoch_{}.pth".format(save_prefix, epoch))
+        torch.save(model.state_dict(), "{}/{}_model_epoch_{}.pth".format(model_save_path,save_prefix, epoch))
         val_acc = test(model, val_dataloader, criterion, device, epoch, writer, save_prefix)
         writer.add_scalars('Epoch wise Accuracy', {'train_acc': train_acc, 'val_acc': val_acc}, epoch)
+        if val_acc>best_val_acc:
+            best_val_acc = val_acc
+            torch.save(model.state_dict(), "{}/{}_best_model.pth".format(model_save_path,save_prefix))
         # slide_wise_analysis(root=val_dir, model=model, epoch=epoch, \
         #                     transform=data_transforms["val"], device=device, \
         #                     batch_size=batch_size, num_char_slide=60, save_prefix=save_prefix)
@@ -141,12 +184,21 @@ def main():
     parser.add_argument("--imagenet_model", type=str, default="resnet18")
     parser.add_argument("--learning_rate", type=float, default=5e-5)
     parser.add_argument("--image_size", type=int, default=224)
-    parser.add_argument("--log_dir", type=str, default="logs/")
+    parser.add_argument("--log_dir", type=str, default="/ssd_scratch/cvit/ashishmenon/unknown/logs/")
     parser.add_argument("--save_prefix", type=str, required=True)
+    parser.add_argument("--model_save_path", type=str, default='/ssd_scratch/cvit/ashishmenon/unknown')
     parser.add_argument("--model_checkpoint", type=str, required=False)
-
+    
     args = parser.parse_args()
     print(args, flush=True)
+
+
+
+    if not os.path.exists(args.log_dir):
+        os.makedirs(args.log_dir)
+
+    if not os.path.exists(args.model_save_path):
+        os.makedirs(args.model_save_path)
 
     writer = SummaryWriter(log_dir=args.log_dir)
 
@@ -172,11 +224,13 @@ def main():
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, sampler=sampler, num_workers=4)
     val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=4)
 
-    model = MODEL_DICT[args.imagenet_model]
-    model.fc = nn.Sequential(
-                nn.Dropout(p=0.2), # p is prob. of a neuron not being dropped out
-                nn.Linear(model.fc.in_features, len(train_dataset.classes))
-                )
+    # model = MODEL_DICT[args.imagenet_model]
+    # model.fc = nn.Sequential(
+    #             nn.Dropout(p=0.2), # p is prob. of a neuron not being dropped out
+    #             nn.Linear(model.fc.in_features, len(train_dataset.classes))
+    #             )
+    dropouts,hidden_layer_units,optimizer_name,lr = get_hyperpara(args.save_prefix)
+    model = define_model(dropouts,hidden_layer_units,num_classes=len(train_dataloader.dataset.classes))
     print(model, flush=True)
 
     if args.model_checkpoint is not None:
@@ -190,22 +244,32 @@ def main():
     class_weights = torch.from_numpy(class_weights/sum(class_weights)).to(torch.float32).to(device)
     criterion = nn.CrossEntropyLoss(weight=class_weights)
 
-    trainable_modules = [model.fc, model.layer4]
-    print("Training Layers fc, layer4", flush=True)
-    training_loop(0, args.num_epochs//3, trainable_modules, model, train_dataloader, \
-            val_dataloader, criterion, args.batch_size, args.learning_rate, args.num_epochs, args.save_prefix, device, writer)
+    # trainable_modules = [model.fc, model.layer4]
+    # print("Training Layers fc, layer4", flush=True)
+    # training_loop(0, args.num_epochs//3, trainable_modules, model, train_dataloader, \
+    #         val_dataloader, criterion, args.batch_size, args.learning_rate, args.num_epochs, args.save_prefix,args.model_save_path, device, writer)
 
-    print("Training Layers fc, layer4, layer3, layer2", flush=True)
-    trainable_modules = [model.fc, model.layer4, model.layer3, model.layer2]
-    training_loop(args.num_epochs//3, 2*args.num_epochs//3, trainable_modules, model, train_dataloader, \
-            val_dataloader, criterion, args.batch_size, args.learning_rate, args.num_epochs, args.save_prefix, device, writer)
+    # print("Training Layers fc, layer4, layer3, layer2", flush=True)
+    # trainable_modules = [model.fc, model.layer4, model.layer3, model.layer2]
+    # training_loop(args.num_epochs//3, 2*args.num_epochs//3, trainable_modules, model, train_dataloader, \
+    #         val_dataloader, criterion, args.batch_size, args.learning_rate, args.num_epochs, args.save_prefix,args.model_save_path, device, writer)
 
     print("Training Layers fc, layer4, layer3, layer2, layer1, bn1, conv1", flush=True)
     trainable_modules = [model.fc, model.layer4, model.layer3, model.layer2, model.layer1, model.bn1, model.conv1]
-    training_loop(2*args.num_epochs//3, args.num_epochs, trainable_modules, model, train_dataloader, \
-            val_dataloader, criterion, args.batch_size, args.learning_rate, args.num_epochs, args.save_prefix, device, writer)
+    training_loop(0, args.num_epochs, trainable_modules, model, train_dataloader, \
+            val_dataloader, criterion, args.batch_size, args.learning_rate, args.num_epochs, args.save_prefix,args.model_save_path, device, writer,optimizer_name,lr)
 
 
 
 if __name__=="__main__":
     main()
+
+
+# Usage:
+# python patch_cnn.py \
+    #   --train_dir /ssd_scratch/cvit/${username}/${subtype}/train_data_for_expt/ \
+    #   --val_dir /ssd_scratch/cvit/${username}/${subtype}/val_data_for_expt/ \
+    #   --save_prefix ${subtype} \
+    #   --log_dir /ssd_scratch/cvit/${username}/${subtype}/logs_train/ \
+    #   --model_save_path /ssd_scratch/cvit/${username}/${subtype}/model_ckpt/ \
+    #   --num_epochs 40  | tee ./${subtype}/${subtype}_train_log_full_filtered_patches.txt

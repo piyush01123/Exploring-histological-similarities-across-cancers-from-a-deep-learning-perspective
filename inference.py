@@ -21,6 +21,44 @@ from PIL import Image, ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
+def get_hyperpara(organ):
+    organ_parameters = {}
+    # organ_parameters['LUAD'] = {'n_units_l0': 11, 'n_units_l1': 127, 'dropout_l1': 0.21644319500667114, 'lr': 0.000443123860947793, 'n_layers': 3, 'dropout_l0': 0.2710437523297514, 'n_units_l2': 6, 'dropout_l2': 0.4907440672692972, 'optimizer': 'Adam'}
+    organ_parameters['LUAD'] = {'dropout_l1': 0.40199979514662076, 'lr': 0.022804111060047597, 'n_layers': 2, 'dropout_l0': 0.2494019459238684, 'n_units_l0': 56, 'optimizer': 'SGD', 'n_units_l1': 72}
+
+    organ_parameters['KICH'] = {'optimizer': 'Adam', 'n_layers': 2, 'lr': 0.00034174604486655424, 'dropout_l1': 0.2590922048730916, 'dropout_l0': 0.4508962491601658, 'n_units_l0': 85, 'n_units_l1': 128}
+    organ_parameters['KIRC'] = {'dropout_l0': 0.23949940999396052, 'optimizer': 'Adam', 'lr': 7.340640278726522e-05, 'dropout_l1': 0.23075402550504015, 'n_layers': 2, 'n_units_l0': 90, 'n_units_l1': 60}
+    organ_parameters['COAD'] = {'n_layers': 2, 'n_units_l0': 51, 'dropout_l0': 0.3633901781496375, 'n_units_l1': 96, 'dropout_l1': 0.24938970860378834, 'optimizer': 'RMSprop', 'lr': 9.325098201927569e-05}    
+    organ_parameters['KIRP'] = {'optimizer': 'Adam', 'n_units_l0': 101, 'lr': 0.0001821856779144607, 'n_units_l1': 127, 'dropout_l0': 0.20045233657011846, 'n_layers': 2, 'dropout_l1': 0.24987265944230833}
+    organ_parameters['READ'] = {'n_units_l1': 4, 'n_layers': 3, 'n_units_l2': 101, 'optimizer': 'Adam', 'lr': 0.00010345081363438437, 'dropout_l1': 0.32566024092209167, 'n_units_l0': 114, 'dropout_l0': 0.3736031169357898, 'dropout_l2': 0.4320328109269479}
+    organ_parameters['LIHC'] = {'lr': 0.000305882784838735, 'n_units_l1': 46, 'n_layers': 2, 'dropout_l1': 0.33086051605996936, 'dropout_l0': 0.3992380294683205, 'n_units_l0': 30, 'optimizer': 'Adam'}
+    organ_parameters['LUSC'] = {'dropout_l0': 0.36601040402058993, 'lr': 0.00012063189382769252, 'dropout_l2': 0.23198155500094464, 'dropout_l1': 0.46238255107808696, 'n_units_l1': 5, 'n_units_l0': 128, 'optimizer': 'Adam', 'n_units_l2': 79, 'n_layers': 3}
+    
+    dropouts = []
+    hidden_layer_units = []
+    for i in range(organ_parameters[organ]['n_layers']):
+        dropouts.append(organ_parameters[organ]['dropout_l{}'.format(i)])
+        hidden_layer_units.append(organ_parameters[organ]['n_units_l{}'.format(i)])
+    optimizer = organ_parameters[organ]['optimizer']
+    lr = organ_parameters[organ]['lr']
+    return dropouts,hidden_layer_units,optimizer,lr
+
+def define_model(dropouts,hidden_layer_units,num_classes=2):
+    # We optimize the number of layers, hidden untis and dropout ratio in each layer.
+    layers = []
+    model = models.resnet18(pretrained=True)
+    in_features = model.fc.in_features
+    for i in range(len(dropouts)):
+        out_features = hidden_layer_units[i]
+        layers.append(nn.Linear(in_features, out_features))
+        layers.append(nn.ReLU())
+        p = dropouts[i]
+        layers.append(nn.Dropout(p))
+        in_features = out_features
+    layers.append(nn.Linear(in_features, num_classes))
+    model.fc = nn.Sequential(*layers)
+    return model
+
 class ModImageFolder(datasets.ImageFolder):
     def __getitem__(self, index):
         img, label = super(datasets.ImageFolder, self).__getitem__(index)
@@ -62,7 +100,7 @@ def test(model, test_dataloader, device, writer, record_csv):
     classes = test_dataloader.dataset.classes
     report = classification_report(y_true, y_pred, target_names=classes, output_dict=True, digits=4)
     print(report, flush=True)
-    df.to_csv(record_csv, index=False)
+    df.to_csv(record_csv+'record.csv', index=False)
 
 
 def main():
@@ -70,11 +108,18 @@ def main():
     parser.add_argument("--test_dir", type=str, required=True)
     parser.add_argument("--batch_size", type=int, default=128)
     parser.add_argument("--image_size", type=int, default=224)
-    parser.add_argument("--log_dir", type=str, default="logs/")
+    parser.add_argument("--log_dir", type=str, default="/ssd_scratch/cvit/ashishmenon/unknown/logs_test/")
     parser.add_argument("--model_checkpoint", type=str, required=True)
-    parser.add_argument("--record_csv", type=str, required=True)
+    parser.add_argument("--record_csv", type=str, default='/ssd_scratch/cvit/ashishmenon/unknown/results_test/')
+    parser.add_argument("--save_prefix", type=str)
     args = parser.parse_args()
     print(args, flush=True)
+
+    if not os.path.exists(args.log_dir):
+        os.makedirs(args.log_dir)
+
+    if not os.path.exists(args.record_csv):
+        os.makedirs(args.record_csv)
 
     writer = SummaryWriter(log_dir=args.log_dir)
 
@@ -89,11 +134,15 @@ def main():
     nw = 4 if torch.cuda.is_available() else 0
     test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=nw, shuffle=False)
 
-    model = models.resnet18()
-    model.fc = nn.Sequential(
-                nn.Dropout(p=0.2), # p is prob. of a neuron not being dropped out
-                nn.Linear(model.fc.in_features, len(test_dataset.classes))
-                )
+    # model = models.resnet18()
+    # model.fc = nn.Sequential(
+    #             nn.Dropout(p=0.2), # p is prob. of a neuron not being dropped out
+    #             nn.Linear(model.fc.in_features, len(test_dataset.classes))
+    #             )
+
+    dropouts,hidden_layer_units,optimizer_name,lr = get_hyperpara(args.save_prefix)
+    model = define_model(dropouts,hidden_layer_units,num_classes=len(test_dataloader.dataset.classes))
+    print(model, flush=True)
 
     ckpt = torch.load(args.model_checkpoint)
     ckpt = {k.replace("module.", ""): v for k, v in ckpt.items()}
@@ -109,3 +158,10 @@ def main():
 
 if __name__=="__main__":
     main()
+#usage
+# python inference.py \
+    #   --model_checkpoint /ssd_scratch/cvit/${username}/${subtype}/model_ckpt/${subtype}_best_model.pth \
+    #   --test_dir /ssd_scratch/cvit/${username}/${subtype}/test_data_for_expt \
+    #   --record_csv /ssd_scratch/cvit/${username}/${subtype}/results_filtered_patches_inference/ \
+    #   --save_prefix ${subtype} \
+    #   --log_dir /ssd_scratch/cvit/${username}/${subtype}/logs_test/ | tee ./${subtype}/${subtype}_inference_filtered_patches_log.txt \
