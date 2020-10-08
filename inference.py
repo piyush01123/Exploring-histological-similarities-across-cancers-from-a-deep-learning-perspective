@@ -26,7 +26,7 @@ def get_hyperpara(organ):
     organ_parameters = {}
     # organ_parameters['LUAD'] = {'n_units_l0': 11, 'n_units_l1': 127, 'dropout_l1': 0.21644319500667114, 'lr': 0.000443123860947793, 'n_layers': 3, 'dropout_l0': 0.2710437523297514, 'n_units_l2': 6, 'dropout_l2': 0.4907440672692972, 'optimizer': 'Adam'}
     organ_parameters['LUAD'] = {'dropout_l1': 0.40199979514662076, 'lr': 0.022804111060047597, 'n_layers': 2, 'dropout_l0': 0.2494019459238684, 'n_units_l0': 56, 'optimizer': 'SGD', 'n_units_l1': 72}
-
+    organ_parameters['PRAD'] = {'lr': 0.00041534966057817655, 'n_layers': 1, 'dropout_l0': 0.36193748808143655, 'optimizer': 'Adam', 'n_units_l0': 85}
     organ_parameters['KICH'] = {'optimizer': 'Adam', 'n_layers': 2, 'lr': 0.00034174604486655424, 'dropout_l1': 0.2590922048730916, 'dropout_l0': 0.4508962491601658, 'n_units_l0': 85, 'n_units_l1': 128}
     organ_parameters['KIRC'] = {'dropout_l0': 0.23949940999396052, 'optimizer': 'Adam', 'lr': 7.340640278726522e-05, 'dropout_l1': 0.23075402550504015, 'n_layers': 2, 'n_units_l0': 90, 'n_units_l1': 60}
     organ_parameters['COAD'] = {'n_layers': 2, 'n_units_l0': 51, 'dropout_l0': 0.3633901781496375, 'n_units_l1': 96, 'dropout_l1': 0.24938970860378834, 'optimizer': 'RMSprop', 'lr': 9.325098201927569e-05}
@@ -95,6 +95,7 @@ def test(model, test_dataloader, device, writer, export_dir, save_prefix):
             y_true.append(targets)
             correct += preds.eq(targets.view_as(preds)).sum().item()
             print('[{}/{}] Done'.format((batch_id+1)*len(data),len(test_dataloader.dataset)), flush=True)
+
     test_acc = 100.*correct/len(test_dataloader.dataset)
     print("Test set: Accuracy: {}/{} ({:.2f}%)".format(correct, len(test_dataloader.dataset), \
           test_acc), flush=True)
@@ -113,7 +114,7 @@ def test(model, test_dataloader, device, writer, export_dir, save_prefix):
     fpr,tpr,roc_auc_dict = {},{},{}
     for i,cls in enumerate(classes):
         fpr[cls], tpr[cls], _ = metrics.roc_curve(target_all[:, i], score_all[:, i])
-        roc_auc_dict[cls] = metrics.auc(fpr[i], tpr[i])
+        roc_auc_dict[cls] = metrics.auc(fpr[cls], tpr[cls])
     # Compute micro-average ROC curve and ROC area
     fpr["micro"], tpr["micro"], _ = metrics.roc_curve(target_all.ravel(), score_all.ravel())
     roc_auc_dict["micro"] = metrics.auc(fpr["micro"], tpr["micro"])
@@ -127,19 +128,20 @@ def test(model, test_dataloader, device, writer, export_dir, save_prefix):
         plt.ylim([0.0, 1.05])
         plt.xlabel('False Positive Rate')
         plt.ylabel('True Positive Rate')
-        plt.title(f"ROC Curve {save_prefix} {cls}")
+        plt.title("ROC Curve {} {}".format(save_prefix, cls))
         plt.legend(loc="lower right")
-        plt.savefig(os.path.join(export_dir, f"{save_prefix}_{cls}_ROC_curve.jpg"))
+        plt.savefig(os.path.join(export_dir, "{}_{}_ROC_curve.jpg".format(save_prefix,cls)))
 
     conf_mat = metrics.confusion_matrix(y_true, y_pred).tolist()
     kappa_score = metrics.cohen_kappa_score(y_true, y_pred)
 
-    df.to_csv(os.path.join(export_dir, f"{save_prefix}_record.csv"), index=False)
-    fh = open(os.path.join(export_dir, f"{save_prefix}_results.txt"), 'w')
-    fh.write(json.dumps(report))
-    fh.write(f"ROC-AUC scores:\n{roc_auc_dict}\n\n")
-    fh.write(f"Confusion Matrix:\n{conf_mat}\n\n")
-    fh.write(f"Kappa Score:\n{kappa_score}\n\n")
+    df.to_csv(os.path.join(export_dir, "{}_record.csv".format(save_prefix)), index=False)
+    fh = open(os.path.join(export_dir, "{}_results.txt".format(save_prefix)), 'w')
+    fh.write("Classification report\n")
+    fh.write(json.dumps(report)+'\n\n')
+    fh.write("ROC-AUC scores:\n{}\n\n".format(roc_auc_dict))
+    fh.write("Confusion Matrix:\n{}\n\n".format(conf_mat))
+    fh.write("Kappa Score:\n{}\n\n".format(kappa_score))
     fh.close()
 
 
@@ -172,7 +174,7 @@ def main():
 
     test_dataset = ModImageFolder(root=args.test_dir, transform=data_transform)
     nw = 4 if torch.cuda.is_available() else 0
-    test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=nw, shuffle=False)
+    test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=0, shuffle=False)
 
     # model = models.resnet18()
     # model.fc = nn.Sequential(
