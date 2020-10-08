@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import os
 import pandas as pd
 from PIL import Image, ImageFile
+import json
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
@@ -28,12 +29,12 @@ def get_hyperpara(organ):
 
     organ_parameters['KICH'] = {'optimizer': 'Adam', 'n_layers': 2, 'lr': 0.00034174604486655424, 'dropout_l1': 0.2590922048730916, 'dropout_l0': 0.4508962491601658, 'n_units_l0': 85, 'n_units_l1': 128}
     organ_parameters['KIRC'] = {'dropout_l0': 0.23949940999396052, 'optimizer': 'Adam', 'lr': 7.340640278726522e-05, 'dropout_l1': 0.23075402550504015, 'n_layers': 2, 'n_units_l0': 90, 'n_units_l1': 60}
-    organ_parameters['COAD'] = {'n_layers': 2, 'n_units_l0': 51, 'dropout_l0': 0.3633901781496375, 'n_units_l1': 96, 'dropout_l1': 0.24938970860378834, 'optimizer': 'RMSprop', 'lr': 9.325098201927569e-05}    
+    organ_parameters['COAD'] = {'n_layers': 2, 'n_units_l0': 51, 'dropout_l0': 0.3633901781496375, 'n_units_l1': 96, 'dropout_l1': 0.24938970860378834, 'optimizer': 'RMSprop', 'lr': 9.325098201927569e-05}
     organ_parameters['KIRP'] = {'optimizer': 'Adam', 'n_units_l0': 101, 'lr': 0.0001821856779144607, 'n_units_l1': 127, 'dropout_l0': 0.20045233657011846, 'n_layers': 2, 'dropout_l1': 0.24987265944230833}
     organ_parameters['READ'] = {'n_units_l1': 4, 'n_layers': 3, 'n_units_l2': 101, 'optimizer': 'Adam', 'lr': 0.00010345081363438437, 'dropout_l1': 0.32566024092209167, 'n_units_l0': 114, 'dropout_l0': 0.3736031169357898, 'dropout_l2': 0.4320328109269479}
     organ_parameters['LIHC'] = {'lr': 0.000305882784838735, 'n_units_l1': 46, 'n_layers': 2, 'dropout_l1': 0.33086051605996936, 'dropout_l0': 0.3992380294683205, 'n_units_l0': 30, 'optimizer': 'Adam'}
     organ_parameters['LUSC'] = {'dropout_l0': 0.36601040402058993, 'lr': 0.00012063189382769252, 'dropout_l2': 0.23198155500094464, 'dropout_l1': 0.46238255107808696, 'n_units_l1': 5, 'n_units_l0': 128, 'optimizer': 'Adam', 'n_units_l2': 79, 'n_layers': 3}
-    
+
     dropouts = []
     hidden_layer_units = []
     for i in range(organ_parameters[organ]['n_layers']):
@@ -66,17 +67,19 @@ class ModImageFolder(datasets.ImageFolder):
         return img, label, path
 
 
-def test(model, test_dataloader, device, writer, record_csv):
+def test(model, test_dataloader, device, writer, export_dir, save_prefix):
     model.eval()
     correct = 0
     y_pred = []
     y_true = []
+    score_all =[]
     print("Y=0-->CANCER, Y=1-->NORMAL", flush=True)
     df = pd.DataFrame(columns=['paths', 'slide_ids', 'targets', 'preds', 'probs'])
     with torch.no_grad():
         for batch_id, (data, targets, paths) in enumerate(test_dataloader):
             data, targets = data.to(device), targets.to(device)
             output = model(data)
+            score_all.append(output)
             probs = F.softmax(output, dim=1)
             preds = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
 
@@ -99,8 +102,46 @@ def test(model, test_dataloader, device, writer, record_csv):
     y_true, y_pred = torch.cat(y_true).cpu().numpy(), torch.cat(y_pred).cpu().numpy()
     classes = test_dataloader.dataset.classes
     report = classification_report(y_true, y_pred, target_names=classes, output_dict=True, digits=4)
-    print(report, flush=True)
-    df.to_csv(record_csv+'record.csv', index=False)
+
+    # Sklearn roc api expects both Y_True and Scores/Probabilities in a matrix of shape MxC where C=num_classes
+    # From sklearn docs: "can be either probability estimates or non-thresholded decision value"
+    # Y_True have to be in a one-hot encoding format
+    # Here we can have 3 roc curves and 3 roc-auc scores, micro, using cancer as positive and using normal as positive
+    # Usually the curve and score with cancer as positive is more relevant
+    score_all = torch.cat(score_all).cpu().numpy()
+    target_all = np.zeros(len(y_true),len(classes))
+    target_all[y_true] = 1
+    fpr,tpr,roc_auc_dict = {},{},{}
+    for i,cls in enumerate(classes):
+        fpr[cls], tpr[cls], _ = metrics.roc_curve(target_all[:, i], score_all[:, i])
+        roc_auc_dict[cls] = metrics.auc(fpr[i], tpr[i])
+    # Compute micro-average ROC curve and ROC area
+    fpr["micro"], tpr["micro"], _ = metrics.roc_curve(target_all.ravel(), score_all.ravel())
+    roc_auc_dict["micro"] = metrics.auc(fpr["micro"], tpr["micro"])
+
+    for cls in classes+["micro"]:
+        plt.figure()
+        plt.plot(fpr[cls], tpr[cls], color='darkorange',
+                 lw=2, label='ROC curve (area = %0.2f)' % roc_auc_dict[cls])
+        plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title(f"ROC Curve {save_prefix} {cls}")
+        plt.legend(loc="lower right")
+        plt.savefig(os.path.join(export_dir, f"{save_prefix}_{cls}_ROC_curve.jpg"))
+
+    conf_mat = metrics.confusion_matrix(y_true, y_pred).tolist()
+    kappa_score = metrics.cohen_kappa_score(y_true, y_pred)
+
+    df.to_csv(os.path.join(export_dir, f"{save_prefix}_record.csv"), index=False)
+    fh = open(os.path.join(export_dir, f"{save_prefix}_results.txt"), 'w')
+    fh.write(json.dumps(report))
+    fh.write(f"ROC-AUC scores:\n{roc_auc_dict}\n\n")
+    fh.write(f"Confusion Matrix:\n{conf_mat}\n\n")
+    fh.write(f"Kappa Score:\n{kappa_score}\n\n")
+    fh.close()
 
 
 def main():
@@ -110,7 +151,7 @@ def main():
     parser.add_argument("--image_size", type=int, default=224)
     parser.add_argument("--log_dir", type=str, default="/ssd_scratch/cvit/ashishmenon/unknown/logs_test/")
     parser.add_argument("--model_checkpoint", type=str, required=True)
-    parser.add_argument("--record_csv", type=str, default='/ssd_scratch/cvit/ashishmenon/unknown/results_test/')
+    parser.add_argument("--export_dir", type=str, default='/ssd_scratch/cvit/ashishmenon/unknown/results_test/')
     parser.add_argument("--save_prefix", type=str)
     args = parser.parse_args()
     print(args, flush=True)
@@ -118,8 +159,8 @@ def main():
     if not os.path.exists(args.log_dir):
         os.makedirs(args.log_dir)
 
-    if not os.path.exists(args.record_csv):
-        os.makedirs(args.record_csv)
+    if not os.path.exists(args.export_dir):
+        os.makedirs(args.export_dir)
 
     writer = SummaryWriter(log_dir=args.log_dir)
 
@@ -153,7 +194,7 @@ def main():
     print("DEVICE {}".format(device), flush=True)
     model = nn.DataParallel(model).to(device)
 
-    test(model, test_dataloader, device, writer, args.record_csv)
+    test(model, test_dataloader, device, writer, args.export_dir, args.save_prefix)
 
 
 if __name__=="__main__":
@@ -162,6 +203,6 @@ if __name__=="__main__":
 # python inference.py \
     #   --model_checkpoint /ssd_scratch/cvit/${username}/${subtype}/model_ckpt/${subtype}_best_model.pth \
     #   --test_dir /ssd_scratch/cvit/${username}/${subtype}/test_data_for_expt \
-    #   --record_csv /ssd_scratch/cvit/${username}/${subtype}/results_filtered_patches_inference/ \
+    #   --export_dir /ssd_scratch/cvit/${username}/${subtype}/results_filtered_patches_inference/ \
     #   --save_prefix ${subtype} \
     #   --log_dir /ssd_scratch/cvit/${username}/${subtype}/logs_test/ | tee ./${subtype}/${subtype}_inference_filtered_patches_log.txt \
