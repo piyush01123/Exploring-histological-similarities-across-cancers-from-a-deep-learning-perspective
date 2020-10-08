@@ -109,8 +109,7 @@ def test(model, test_dataloader, device, writer, export_dir, save_prefix):
     # Here we can have 3 roc curves and 3 roc-auc scores, micro, using cancer as positive and using normal as positive
     # Usually the curve and score with cancer as positive is more relevant
     score_all = torch.cat(score_all).cpu().numpy()
-    target_all = np.zeros(len(y_true),len(classes))
-    target_all[y_true] = 1
+    target_all = np.eye(len(classes))[y_true]
     fpr,tpr,roc_auc_dict = {},{},{}
     for i,cls in enumerate(classes):
         fpr[cls], tpr[cls], _ = metrics.roc_curve(target_all[:, i], score_all[:, i])
