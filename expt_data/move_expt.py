@@ -29,7 +29,7 @@ def main():
                 for patch in patches:
                     src = os.path.join(root_original, type, slide_id, patch)
                     dest = os.path.join(root_expt, type, slide_id, patch)
-                    shutil.move(src,dest)
+                    shutil.move(src,dest) if os.path.isfile(src) else None
 
 
 if __name__=="__main__":

@@ -28,6 +28,15 @@ do
   rsync -aPz ecdp2020@10.4.16.73:TCGA_PATCHES/${subtype}/test/ /ssd_scratch/cvit/${username}/${subtype}/test/
   rsync -aPz ecdp2020@10.4.16.73:ExptDataJson/${subtype}_expt.json /ssd_scratch/cvit/${username}/ExptDataJson/
 
+  python expt_data/merge_expt.py \
+          --train_dir /ssd_scratch/cvit/${username}/Dummy \
+          --val_dir /ssd_scratch/cvit/${username}/Dummy \
+          --test_dir /ssd_scratch/cvit/${username}/${subtype}/test \
+          --expt_train_dir /ssd_scratch/cvit/${username}/Dummy \
+          --expt_val_dir /ssd_scratch/cvit/${username}/Dummy \
+          --expt_test_dir /ssd_scratch/cvit/${username}/${subtype}/test_data_for_expt \
+          --expt_json /ssd_scratch/cvit/${username}/ExptDataJson/${subtype}_expt.json
+
   python expt_data/move_expt.py \
           --train_dir /ssd_scratch/cvit/${username}/Dummy \
           --val_dir /ssd_scratch/cvit/${username}/Dummy \
@@ -35,7 +44,7 @@ do
           --expt_train_dir /ssd_scratch/cvit/${username}/Dummy \
           --expt_val_dir /ssd_scratch/cvit/${username}/Dummy \
           --expt_test_dir /ssd_scratch/cvit/${username}/${subtype}/test_data_for_expt \
-          --expt_json /ssd_scratch/cvit/${username}/ExptDataJson/${subtype}_expt.json \
+          --expt_json /ssd_scratch/cvit/${username}/ExptDataJson/${subtype}_expt.json
 
   python inference_cross.py \
         --model_checkpoint /ssd_scratch/cvit/${username}/CheckPoints/${ckpt} \
