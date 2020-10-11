@@ -167,7 +167,7 @@ def main():
     nw = 4 if torch.cuda.is_available() else 0
     test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=0, shuffle=False)
 
-    hparams = json.load(args.hparam_json)[args.save_prefix]
+    hparams = json.load(open(args.hparam_json, 'r'))[args.save_prefix]
     dropouts,hidden_layer_units,optimizer_name,lr = get_hyperpara(hparams)
     model = define_model(dropouts,hidden_layer_units,num_classes=len(test_dataloader.dataset.classes))
     print(model, flush=True)
