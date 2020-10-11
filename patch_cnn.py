@@ -15,6 +15,7 @@ from sklearn.metrics import classification_report
 import sklearn.metrics as metrics
 from PIL import Image
 import numpy as np
+import json
 import os
 
 
@@ -22,24 +23,14 @@ MODEL_DICT = {"resnet18" : models.resnet18(pretrained=True),
               "resnet34" : models.resnet34(pretrained=True)
              }
 
-def get_hyperpara(organ):
-    organ_parameters = {}
-    organ_parameters['LUAD'] = {'dropout_l1': 0.40199979514662076, 'lr': 0.022804111060047597, 'n_layers': 2, 'dropout_l0': 0.2494019459238684, 'n_units_l0': 56, 'optimizer': 'SGD', 'n_units_l1': 72}
-    organ_parameters['KICH'] = {'optimizer': 'Adam', 'n_layers': 2, 'lr': 0.00034174604486655424, 'dropout_l1': 0.2590922048730916, 'dropout_l0': 0.4508962491601658, 'n_units_l0': 85, 'n_units_l1': 128}
-    organ_parameters['KIRC'] = {'dropout_l0': 0.23949940999396052, 'optimizer': 'Adam', 'lr': 7.340640278726522e-05, 'dropout_l1': 0.23075402550504015, 'n_layers': 2, 'n_units_l0': 90, 'n_units_l1': 60}
-    organ_parameters['COAD'] = {'n_layers': 2, 'n_units_l0': 51, 'dropout_l0': 0.3633901781496375, 'n_units_l1': 96, 'dropout_l1': 0.24938970860378834, 'optimizer': 'RMSprop', 'lr': 9.325098201927569e-05}    
-    organ_parameters['KIRP'] = {'optimizer': 'Adam', 'n_units_l0': 101, 'lr': 0.0001821856779144607, 'n_units_l1': 127, 'dropout_l0': 0.20045233657011846, 'n_layers': 2, 'dropout_l1': 0.24987265944230833}
-    organ_parameters['READ'] = {'n_units_l1': 4, 'n_layers': 3, 'n_units_l2': 101, 'optimizer': 'Adam', 'lr': 0.00010345081363438437, 'dropout_l1': 0.32566024092209167, 'n_units_l0': 114, 'dropout_l0': 0.3736031169357898, 'dropout_l2': 0.4320328109269479}
-    organ_parameters['LIHC'] = {'lr': 0.000305882784838735, 'n_units_l1': 46, 'n_layers': 2, 'dropout_l1': 0.33086051605996936, 'dropout_l0': 0.3992380294683205, 'n_units_l0': 30, 'optimizer': 'Adam'}
-    organ_parameters['LUSC'] = {'dropout_l0': 0.36601040402058993, 'lr': 0.00012063189382769252, 'dropout_l2': 0.23198155500094464, 'dropout_l1': 0.46238255107808696, 'n_units_l1': 5, 'n_units_l0': 128, 'optimizer': 'Adam', 'n_units_l2': 79, 'n_layers': 3}
-    
+def get_hyperpara(hparams):
     dropouts = []
     hidden_layer_units = []
-    for i in range(organ_parameters[organ]['n_layers']):
-        dropouts.append(organ_parameters[organ]['dropout_l{}'.format(i)])
-        hidden_layer_units.append(organ_parameters[organ]['n_units_l{}'.format(i)])
-    optimizer = organ_parameters[organ]['optimizer']
-    lr = organ_parameters[organ]['lr']
+    for i in range(hparams['n_layers']):
+        dropouts.append(hparams['dropout_l{}'.format(i)])
+        hidden_layer_units.append(hparams['n_units_l{}'.format(i)])
+    optimizer = hparams['optimizer']
+    lr = hparams['lr']
     return dropouts,hidden_layer_units,optimizer,lr
 
 def define_model(dropouts,hidden_layer_units,num_classes=2):
@@ -187,8 +178,9 @@ def main():
     parser.add_argument("--log_dir", type=str, default="/ssd_scratch/cvit/ashishmenon/unknown/logs/")
     parser.add_argument("--save_prefix", type=str, required=True)
     parser.add_argument("--model_save_path", type=str, default='/ssd_scratch/cvit/ashishmenon/unknown')
+    parser.add_argument("--hparam_json", type=str, required=True)
     parser.add_argument("--model_checkpoint", type=str, required=False)
-    
+
     args = parser.parse_args()
     print(args, flush=True)
 
@@ -224,12 +216,8 @@ def main():
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, sampler=sampler, num_workers=4)
     val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=4)
 
-    # model = MODEL_DICT[args.imagenet_model]
-    # model.fc = nn.Sequential(
-    #             nn.Dropout(p=0.2), # p is prob. of a neuron not being dropped out
-    #             nn.Linear(model.fc.in_features, len(train_dataset.classes))
-    #             )
-    dropouts,hidden_layer_units,optimizer_name,lr = get_hyperpara(args.save_prefix)
+    hparams = json.load(args.hparam_json)[args.save_prefix]
+    dropouts,hidden_layer_units,optimizer_name,lr = get_hyperpara(hparams)
     model = define_model(dropouts,hidden_layer_units,num_classes=len(train_dataloader.dataset.classes))
     print(model, flush=True)
 
