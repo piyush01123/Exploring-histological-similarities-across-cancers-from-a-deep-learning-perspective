@@ -143,6 +143,7 @@ def main():
     parser.add_argument("--log_dir", type=str, default="/ssd_scratch/cvit/ashishmenon/unknown/logs_test/")
     parser.add_argument("--model_checkpoint", type=str, required=True)
     parser.add_argument("--hparam_json", type=str, required=True)
+    parser.add_argument("--model_organ", type=str, required=True)
     parser.add_argument("--export_dir", type=str, default='/ssd_scratch/cvit/ashishmenon/unknown/results_test/')
     parser.add_argument("--save_prefix", type=str) # For the organ whose data is being used
     args = parser.parse_args()
@@ -167,7 +168,7 @@ def main():
     nw = 4 if torch.cuda.is_available() else 0
     test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=0, shuffle=False)
 
-    hparams = json.load(open(args.hparam_json, 'r'))[args.save_prefix]
+    hparams = json.load(open(args.hparam_json, 'r'))[args.model_organ]
     dropouts,hidden_layer_units,optimizer_name,lr = get_hyperpara(hparams)
     model = define_model(dropouts,hidden_layer_units,num_classes=len(test_dataloader.dataset.classes))
     print(model, flush=True)

@@ -41,5 +41,6 @@ do
         --test_dir /ssd_scratch/cvit/${username}/${subtype}/test_data_for_expt \
         --export_dir /ssd_scratch/cvit/${username}/CrossOrganInference/${model}_Model/${subtype} \
         --save_prefix ${subtype} \
+        --model_organ ${model} \
         --log_dir /ssd_scratch/cvit/${username}/Logs_Test/${model}_Model/${subtype}/ | tee ${model}_${subtype}_hptune_log.txt
 done
