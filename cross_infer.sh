@@ -5,6 +5,7 @@
 #SBATCH --gres=gpu:2
 #SBATCH --mem-per-cpu=2048
 #SBATCH --time=4-00:00:00
+#SBATCH -w gnode28
 ##SBATCH --mail-type=END
 
 username=piyush
@@ -17,6 +18,7 @@ source ~/v3env/bin/activate
 mkdir -p /ssd_scratch/cvit/${username}/Dummy
 mkdir -p /ssd_scratch/cvit/${username}/CheckPoints
 mkdir -p /ssd_scratch/cvit/${username}/ExptDataJson
+mkdir -p ~/CrossOrganInference/${model}_Model
 rsync -aPz ecdp2020@10.4.16.73:CheckPoints/${ckpt} /ssd_scratch/cvit/${username}/CheckPoints/
 
 for subtype in BRCA	COAD	KICH	KIRC	KIRP	LIHC	LUAD	LUSC	PRAD	READ	STAD
@@ -43,4 +45,6 @@ do
         --save_prefix ${subtype} \
         --model_organ ${model} \
         --log_dir /ssd_scratch/cvit/${username}/Logs_Test/${model}_Model/${subtype}/ | tee ${model}_${subtype}_hptune_log.txt
+
+  cp -r /ssd_scratch/cvit/${username}/CrossOrganInference/${model}_Model/${subtype} \ ~/CrossOrganInference/${model}_Model/${subtype}
 done
