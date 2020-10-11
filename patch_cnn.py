@@ -216,7 +216,7 @@ def main():
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, sampler=sampler, num_workers=4)
     val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=4)
 
-    hparams = json.load(args.hparam_json)[args.save_prefix]
+    hparams = json.load(open(args.hparam_json, 'r'))[args.save_prefix]
     dropouts,hidden_layer_units,optimizer_name,lr = get_hyperpara(hparams)
     model = define_model(dropouts,hidden_layer_units,num_classes=len(train_dataloader.dataset.classes))
     print(model, flush=True)
