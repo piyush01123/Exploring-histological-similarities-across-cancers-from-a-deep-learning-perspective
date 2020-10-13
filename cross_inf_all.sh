@@ -11,6 +11,8 @@ username=piyush
 module load cuda/10.0
 module load cudnn/7.3-cuda-10.0
 source ~/v3env/bin/activate
+
+rm -rf /ssd_scratch/cvit/${username}
 mkdir -p /ssd_scratch/cvit/${username}/Dummy
 mkdir -p /ssd_scratch/cvit/${username}/ExptDataJson
 
@@ -19,15 +21,6 @@ do
   mkdir -p /ssd_scratch/cvit/${username}/${subtype}/test/
   rsync -aPz ecdp2020@10.4.16.73:TCGA_PATCHES/${subtype}/test/ /ssd_scratch/cvit/${username}/${subtype}/test/
   rsync -aPz ecdp2020@10.4.16.73:ExptDataJson/${subtype}_expt.json /ssd_scratch/cvit/${username}/ExptDataJson/
-
-  python expt_data/merge_expt.py \
-          --train_dir /ssd_scratch/cvit/${username}/Dummy \
-          --val_dir /ssd_scratch/cvit/${username}/Dummy \
-          --test_dir /ssd_scratch/cvit/${username}/${subtype}/test \
-          --expt_train_dir /ssd_scratch/cvit/${username}/Dummy \
-          --expt_val_dir /ssd_scratch/cvit/${username}/Dummy \
-          --expt_test_dir /ssd_scratch/cvit/${username}/${subtype}/test_data_for_expt \
-          --expt_json /ssd_scratch/cvit/${username}/ExptDataJson/${subtype}_expt.json
 
   python expt_data/move_expt.py \
           --train_dir /ssd_scratch/cvit/${username}/Dummy \
@@ -41,7 +34,7 @@ done
 
 
 mkdir -p /ssd_scratch/cvit/${username}/CheckPoints
-for model in COAD	KICH	KIRC	KIRP	LIHC	LUAD	LUSC	READ
+for model in BRCA	COAD	KICH	KIRC	KIRP	LIHC	LUAD	LUSC	PRAD	READ	STAD
 do
   ckpt=${model}_best_model.pth
   mkdir -p ~/CrossOrganInference/${model}_Model
@@ -59,5 +52,6 @@ do
           --log_dir /ssd_scratch/cvit/${username}/Logs_Test/${model}_Model/${subtype}/ | tee Crs_Inf_${model}_${subtype}.txt
     done
 done
-mkdir ~/CrossOrganResults
-cp -r /ssd_scratch/cvit/${username}/CrossOrganInference/ ~/CrossOrganResults
+
+cp -r /ssd_scratch/cvit/${username}/CrossOrganInference ~/
+tar cvzf ~/CrossOrgan.tar.gz ~/CrossOrganInference/

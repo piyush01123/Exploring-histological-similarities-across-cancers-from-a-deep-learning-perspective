@@ -1,6 +1,6 @@
 
 {
-  "BRCA": {},
+  "BRCA": {"optimizer": "RMSprop", "n_units_l0": 87, "lr": 5.943487128044342e-05, "n_layers": 1, "dropout_l0": 0.4494231064473708},
   "COAD": {"n_layers": 2, "n_units_l0": 51, "dropout_l0": 0.3633901781496375, "n_units_l1": 96, "dropout_l1": 0.24938970860378834, "optimizer": "RMSprop", "lr": 9.325098201927569e-05},
   "KICH": {"optimizer": "Adam", "n_layers": 2, "lr": 0.00034174604486655424, "dropout_l1": 0.2590922048730916, "dropout_l0": 0.4508962491601658, "n_units_l0": 85, "n_units_l1": 128},
   "KIRC": {"dropout_l0": 0.23949940999396052, "optimizer": "Adam", "lr": 7.340640278726522e-05, "dropout_l1": 0.23075402550504015, "n_layers": 2, "n_units_l0": 90, "n_units_l1": 60},
