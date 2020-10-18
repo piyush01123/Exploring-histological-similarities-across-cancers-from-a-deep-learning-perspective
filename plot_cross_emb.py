@@ -1,6 +1,8 @@
 
 import numpy as np
-from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA, KernelPCA
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.manifold import TSNE, LocallyLinearEmbedding, MDS, SpectralEmbedding, Isomap
 import h5py
 import argparse
 import matplotlib.pyplot as plt
@@ -15,6 +17,7 @@ def main():
     parser.add_argument("--model_organ", type=str, required=True)
     parser.add_argument("--points_to_use", type=int, required=True)
     parser.add_argument("--outfile", type=str, required=True)
+    parser.add_argument("--method", type=str, required=True)
     args = parser.parse_args()
 
     features, labels, organs = [], [], []
@@ -35,8 +38,42 @@ def main():
 
     features,labels,organs = np.concatenate(features),np.concatenate(labels),np.concatenate(organs)
 
-    tsne = TSNE(n_components=2, verbose=1, perplexity=500, n_iter=5000)
-    points = tsne.fit_transform(features)
+    if args.method=="PCA":
+        pca = PCA(n_components=2)
+        points = pca.fit_transform(features)
+    if args.method=="KernelPCA":
+        kpca = KernelPCA(n_components=2, kernel="rbf")
+        points = pca.fit_transform(features)
+    elif args.method=="LDA":
+        lda = LinearDiscriminantAnalysis(n_components=2)
+        points = lda.fit(features, labels).tranform(features)
+    elif args.method=="TSNE":
+        tsne = TSNE(n_components=2, verbose=1, perplexity=500, n_iter=5000)
+        points = tsne.fit_transform(features)
+    elif args.method=="MDS":
+        mds = MDS(n_components=2)
+        points = mds.fit_transform(features)
+    elif args.method=="Isomap":
+        isomap = Isomap(n_neighbors=10, n_components=2)
+        points = isomap.fit_transform(features)
+    elif args.method=="SpectralEmbedding":
+        emb = SpectralEmbedding(n_neighbors=10, n_components=2)
+        points = emb.fit_transform(features)
+    elif args.method=="LLE":
+        emb = LocallyLinearEmbedding(n_neighbors=10, n_components=2, method="standard")
+        points = emb.fit_transform(features)
+    elif args.method=="LTSA":
+        emb = LocallyLinearEmbedding(n_neighbors=10, n_components=2, method="ltsa")
+        points = emb.fit_transform(features)
+    elif args.method=="HessianLLE":
+        emb = LocallyLinearEmbedding(n_neighbors=10, n_components=2, method="hessian")
+        points = emb.fit_transform(features)
+    elif args.method=="ModifiedLLE":
+        emb = LocallyLinearEmbedding(n_neighbors=10, n_components=2, method="modified")
+        points = emb.fit_transform(features)
+    else:
+        raise ValueError("Method Invalid.")
+
 
     plt.figure(figsize=(10,8))
     sns.scatterplot(x=points[:,0], y=points[:,1], hue=organs, style=labels, cmap='tab20')
