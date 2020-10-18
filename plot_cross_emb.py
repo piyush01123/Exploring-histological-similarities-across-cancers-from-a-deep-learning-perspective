@@ -19,6 +19,7 @@ def main():
     parser.add_argument("--outfile", type=str, required=True)
     parser.add_argument("--method", type=str, required=True)
     args = parser.parse_args()
+    print(args,flush=True)
 
     features, labels, organs = [], [], []
     for test_set in args.test_sets:
@@ -41,7 +42,7 @@ def main():
     if args.method=="PCA":
         pca = PCA(n_components=2)
         points = pca.fit_transform(features)
-    if args.method=="KernelPCA":
+    elif args.method=="KernelPCA":
         kpca = KernelPCA(n_components=2, kernel="rbf")
         points = pca.fit_transform(features)
     elif args.method=="LDA":
