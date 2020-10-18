@@ -10,7 +10,7 @@ import os
 
 def main():
     parser = argparse.ArgumentParser(description='Process args for t-SNE plot')
-    parser.add_argument("--h5py_files_root", nargs='+', type=str, required=True)
+    parser.add_argument("--h5py_files_root", type=str, required=True)
     parser.add_argument("--test_sets", nargs='+', type=str, required=True)
     parser.add_argument("--model_organ", type=str, required=True)
     parser.add_argument("--points_to_use", type=int, required=True)
