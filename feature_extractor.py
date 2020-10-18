@@ -83,8 +83,6 @@ def extract_features(model, device, dataloader, batch_size, h5fh):
             out = model(batch)
             output[i*batch_size : i*batch_size+len(batch)] = out.cpu().numpy()
             print("[INFO: {}] {}/{} Done.".format(time.strftime("%d-%b-%Y %H:%M:%S"), i*batch_size+len(batch), len(dataloader.dataset)), flush=True)
-            if i==5: # I need to quickly get result for now
-                break
         h5fh.create_dataset('embeddings', data=output, chunks=True, compression='gzip')
 
 
