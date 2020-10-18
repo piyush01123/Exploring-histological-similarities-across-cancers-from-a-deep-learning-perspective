@@ -111,7 +111,8 @@ def main():
     ckpt = {k.replace("module.", ""): v for k, v in ckpt.items()}
     model.load_state_dict(ckpt)
     print("[MSG] Model loaded from {}".format(args.model_checkpoint), flush=True)
-    model.fc = Identity()
+    # model.fc = Identity()
+    model.fc = nn.Sequential(*list(model.fc.children())[:-1])
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = nn.DataParallel(model).to(device)
 
