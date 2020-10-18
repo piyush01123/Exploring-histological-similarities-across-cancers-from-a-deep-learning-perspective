@@ -22,9 +22,9 @@ def main():
         fp = os.path.join(args.h5py_files_root, "{}.h5".format(test_set))
         assert os.path.isfile(fp)
         h5data = h5py.File(fp, 'r')
-        feat_all, labels = h5data.get("embeddings").value, h5data.get("labels").value
-        feat_C = feat_all[labels==0]
-        feat_N = feat_all[labels==1]
+        feat_all, Y = h5data.get("embeddings").value, h5data.get("labels").value
+        feat_C = feat_all[Y==0]
+        feat_N = feat_all[Y==1]
         idx_C = np.random.randint(len(feat_C), size=(args.points_to_use,))
         idx_N = np.random.randint(len(feat_N), size=(args.points_to_use,))
         features.append(feat_C[idx_C])
