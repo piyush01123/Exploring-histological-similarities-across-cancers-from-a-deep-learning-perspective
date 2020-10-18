@@ -74,9 +74,9 @@ class Identity(nn.Module):
         return x
 
 
-def extract_features(model, device, dataloader, batch_size, h5fh):
+def extract_features(model, device, dataloader, batch_size, h5fh, len_feature_vec):
     model.eval()
-    output = np.empty((len(dataloader.dataset), 512),dtype=np.float32)
+    output = np.empty((len(dataloader.dataset), len_feature_vec),dtype=np.float32)
     with torch.no_grad():
         for i, (batch,_,_,_) in enumerate(dataloader):
             batch = batch.to(device)
@@ -124,7 +124,7 @@ def main():
         dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
 
         print("Extracting features from {} at {}".format(args.root_dir, args.h5py_file_path), flush=True)
-        extract_features(model, device, dataloader, args.batch_size, h5fh)
+        extract_features(model, device, dataloader, args.batch_size, h5fh, hidden_layer_units[-1])
         h5fh.close()
 
     print("FIN.", flush=True)
