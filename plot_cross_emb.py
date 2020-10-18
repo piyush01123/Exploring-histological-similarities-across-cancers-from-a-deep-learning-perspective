@@ -44,7 +44,7 @@ def main():
         points = pca.fit_transform(features)
     elif args.method=="KernelPCA":
         kpca = KernelPCA(n_components=2, kernel="rbf")
-        points = pca.fit_transform(features)
+        points = kpca.fit_transform(features)
     elif args.method=="LDA":
         lda = LinearDiscriminantAnalysis(n_components=2)
         points = lda.fit(features, labels).tranform(features)
