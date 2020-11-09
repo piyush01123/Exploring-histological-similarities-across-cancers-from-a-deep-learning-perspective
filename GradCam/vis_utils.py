@@ -64,7 +64,7 @@ def save_class_activation_images(org_img, activation_map, results_dir,file_name,
     # path_to_file = os.path.join(results_dir,sample_type, "Cam_HeatMap" , file_name+'.png')
     # save_image(heatmap, path_to_file)
     # # Save heatmap on iamge
-    path_to_file = os.path.join(results_dir,file_name+"_Cam_On_Image"'.png')
+    path_to_file = os.path.join(results_dir,file_name+"_Cam_On_Image"+'.png')
     save_image(heatmap_on_image, path_to_file)
     # # SAve grayscale heatmap
     # path_to_file = os.path.join(results_dir,sample_type,"Cam_Grayscale" ,file_name+'.png')
