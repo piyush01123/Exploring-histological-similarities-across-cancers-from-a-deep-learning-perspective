@@ -89,7 +89,7 @@ class CamExtractor():
                 x.register_hook(self.save_gradient)
                 conv_output = x  # Save the convolution output on that layer
         return conv_output, x
-    
+
 
     def forward_pass(self, x):
         """
@@ -98,7 +98,7 @@ class CamExtractor():
         # Forward pass on the convolutions
         conv_output, x = self.forward_pass_on_convolutions(x)
         return conv_output, x
-    
+
 class GradCam():
     """
         Produces class activation map
@@ -153,7 +153,7 @@ class GradCam():
         # You can also use the code below instead of the code line above, suggested by @ ptschandl
         # from scipy.ndimage.interpolation import zoom
         # cam = zoom(cam, np.array(input_image[0].shape[1:])/np.array(cam.shape))
-        return cam,target_class    
+        return cam,target_class
 
 
 def main():
@@ -161,7 +161,7 @@ def main():
 
     os.makedirs(args.save_dir,exist_ok=True)
 
-    
+
     data_transform = transforms.Compose([
         transforms.Resize(256),
         transforms.CenterCrop(224),
@@ -174,13 +174,15 @@ def main():
     samples = [i[1] for i in test_dataset.samples]
     cancer_indices = np.where(np.array(samples)==0)[0]
     # cancer_indices = np.random.choice(cancer_indices,min(len(cancer_indices),1000),replace=False)
-    cancer_indices = cancer_indices[:min(len(cancer_indices),1000)]
-    normal_indices = np.where(np.array(samples)==1)[0]
-    # normal_indices = np.random.choice(normal_indices,min(len(normal_indices),1000),replace=False)
-    normal_indices = normal_indices[:min(len(normal_indices),1000)]
-    # cancer_dataset = Subset(test_dataset, cancer_indices)
-    # normal_dataset = Subset(test_dataset, normal_indices)
-    combined_dataset = Subset(test_dataset, np.array(list(cancer_indices)+list(normal_indices)))
+    cancer_indices = cancer_indices[:min(len(cancer_indices),100)]
+    combined_dataset = Subset(test_dataset, np.array(list(cancer_indices)))
+
+    # normal_indices = np.where(np.array(samples)==1)[0]
+    # # normal_indices = np.random.choice(normal_indices,min(len(normal_indices),1000),replace=False)
+    # normal_indices = normal_indices[:min(len(normal_indices),1000)]
+    # # cancer_dataset = Subset(test_dataset, cancer_indices)
+    # # normal_dataset = Subset(test_dataset, normal_indices)
+    # combined_dataset = Subset(test_dataset, np.array(list(cancer_indices)+list(normal_indices)))
 
     hparams = json.load(open(args.hparam_json, 'r'))[args.model_chosen]
     dropouts,hidden_layer_units,optimizer_name,lr = get_hyperpara(hparams)

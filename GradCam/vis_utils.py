@@ -52,35 +52,37 @@ def save_class_activation_images(org_img, activation_map, results_dir,file_name,
     """
     if not os.path.exists(results_dir):
         os.makedirs(results_dir)
-    os.makedirs(os.path.join(results_dir,sample_type),exist_ok=True)    
-    os.makedirs(os.path.join(results_dir,sample_type,"Cam_HeatMap"),exist_ok=True)
-    os.makedirs(os.path.join(results_dir,sample_type,"Cam_On_Image"),exist_ok=True)
-    os.makedirs(os.path.join(results_dir,sample_type,"Cam_Grayscale"),exist_ok=True)
-    os.makedirs(os.path.join(results_dir,sample_type,"bounding_box"),exist_ok=True)
-
-    # Grayscale activation map
-    heatmap, heatmap_on_image = apply_colormap_on_image(org_img, activation_map, 'hsv')
-    # Save colored heatmap
-    path_to_file = os.path.join(results_dir,sample_type, "Cam_HeatMap" , file_name+'.png')
+    os.makedirs(os.path.join(results_dir,sample_type),exist_ok=True)
+    path_to_file = os.path.join(results_dir,sample_type,  file_name+"_Cam_HeatMap"+'.png')
     save_image(heatmap, path_to_file)
-    # Save heatmap on iamge
-    path_to_file = os.path.join(results_dir,sample_type,"Cam_On_Image",file_name+'.png')
-    save_image(heatmap_on_image, path_to_file)
-    # SAve grayscale heatmap
-    path_to_file = os.path.join(results_dir,sample_type,"Cam_Grayscale" ,file_name+'.png')
-    save_image(activation_map, path_to_file)
-    
-    activation_map = format_np_output(activation_map)
-    activation_map_2D = cv2.cvtColor(activation_map, cv2.COLOR_BGR2GRAY)
-    img = np.array(org_img)
-    thresh = cv2.threshold(activation_map_2D, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-    cnts = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    cnts = cnts[0] if len(cnts) == 2 else cnts[1]
-    for c in cnts:
-        x,y,w,h = cv2.boundingRect(c)
-        cv2.rectangle(img, (x, y), (x + w, y + h), (36,255,12), 2)
-    path_to_file = os.path.join(results_dir,sample_type,"bounding_box" ,file_name+'.png')
-    save_image(img, path_to_file)
+    # os.makedirs(os.path.join(results_dir,sample_type,"Cam_HeatMap"),exist_ok=True)
+    # os.makedirs(os.path.join(results_dir,sample_type,"Cam_On_Image"),exist_ok=True)
+    # os.makedirs(os.path.join(results_dir,sample_type,"Cam_Grayscale"),exist_ok=True)
+    # os.makedirs(os.path.join(results_dir,sample_type,"bounding_box"),exist_ok=True)
+    #
+    # # Grayscale activation map
+    # heatmap, heatmap_on_image = apply_colormap_on_image(org_img, activation_map, 'hsv')
+    # # Save colored heatmap
+    # path_to_file = os.path.join(results_dir,sample_type, "Cam_HeatMap" , file_name+'.png')
+    # save_image(heatmap, path_to_file)
+    # # Save heatmap on iamge
+    # path_to_file = os.path.join(results_dir,sample_type,"Cam_On_Image",file_name+'.png')
+    # save_image(heatmap_on_image, path_to_file)
+    # # SAve grayscale heatmap
+    # path_to_file = os.path.join(results_dir,sample_type,"Cam_Grayscale" ,file_name+'.png')
+    # save_image(activation_map, path_to_file)
+    #
+    # activation_map = format_np_output(activation_map)
+    # activation_map_2D = cv2.cvtColor(activation_map, cv2.COLOR_BGR2GRAY)
+    # img = np.array(org_img)
+    # thresh = cv2.threshold(activation_map_2D, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+    # cnts = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # cnts = cnts[0] if len(cnts) == 2 else cnts[1]
+    # for c in cnts:
+    #     x,y,w,h = cv2.boundingRect(c)
+    #     cv2.rectangle(img, (x, y), (x + w, y + h), (36,255,12), 2)
+    # path_to_file = os.path.join(results_dir,sample_type,"bounding_box" ,file_name+'.png')
+    # save_image(img, path_to_file)
 
 
 
@@ -93,7 +95,7 @@ def apply_colormap_on_image(org_im, activation, colormap_name):
         colormap_name (str): Name of the colormap
     """
     # Get colormap
-    
+
     color_map = mpl_color_map.get_cmap(colormap_name)
     no_trans_heatmap = color_map(activation)
     # Change alpha channel in colormap to make sure original image is displayed
@@ -150,7 +152,7 @@ def save_image(im, path):
 
 
 def preprocess_image(pil_im, mean,std,resize_im=True,centre_crop=True):
-    
+
     """
         Processes image for CNNs
     Args:
@@ -162,8 +164,8 @@ def preprocess_image(pil_im, mean,std,resize_im=True,centre_crop=True):
     # mean and std list for channels (Imagenet)
 #     mean = [0.485, 0.456, 0.406]
 #     std = [0.229, 0.224, 0.225]
-    
-    
+
+
     #ensure or transform incoming image to PIL image
     if type(pil_im) != Image.Image:
         try:
