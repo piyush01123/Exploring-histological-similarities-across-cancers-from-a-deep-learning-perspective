@@ -52,7 +52,7 @@ def save_class_activation_images(org_img, activation_map, results_dir,file_name,
     """
     if not os.path.exists(results_dir):
         os.makedirs(results_dir)
-    os.makedirs(os.path.join(results_dir,sample_type),exist_ok=True)
+    os.makedirs(os.path.join(results_dir),exist_ok=True)
     # os.makedirs(os.path.join(results_dir,sample_type,"Cam_HeatMap"),exist_ok=True)
     # os.makedirs(os.path.join(results_dir,sample_type,"Cam_On_Image"),exist_ok=True)
     # os.makedirs(os.path.join(results_dir,sample_type,"Cam_Grayscale"),exist_ok=True)
@@ -62,15 +62,10 @@ def save_class_activation_images(org_img, activation_map, results_dir,file_name,
     heatmap, heatmap_on_image = apply_colormap_on_image(org_img, activation_map, 'hsv')
     # Save colored heatmap
     # path_to_file = os.path.join(results_dir,sample_type, "Cam_HeatMap" , file_name+'.png')
-
-    path_to_file = os.path.join(results_dir,sample_type,  file_name+"_Cam_HeatMap"+'.png')
-    save_image(heatmap, path_to_file)
-    print("Saved", path_to_file)
-
     # save_image(heatmap, path_to_file)
     # # Save heatmap on iamge
-    # path_to_file = os.path.join(results_dir,sample_type,"Cam_On_Image",file_name+'.png')
-    # save_image(heatmap_on_image, path_to_file)
+    path_to_file = os.path.join(results_dir,file_name+"_Cam_On_Image"'.png')
+    save_image(heatmap_on_image, path_to_file)
     # # SAve grayscale heatmap
     # path_to_file = os.path.join(results_dir,sample_type,"Cam_Grayscale" ,file_name+'.png')
     # save_image(activation_map, path_to_file)
