@@ -1,14 +1,15 @@
 import os
 import copy
 import numpy as np
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter,ImageOps
 import matplotlib.cm as mpl_color_map
 import cv2
 import torch
 from torch.autograd import Variable
 from torchvision import models
-
-
+import json 
+import random as rng
+from save_jaccard_iou import remove_redundant_bb
 def convert_to_grayscale(im_as_arr):
     """
         Converts 3d image to grayscale
@@ -59,28 +60,54 @@ def save_class_activation_images(org_img, activation_map, results_dir,file_name,
     # os.makedirs(os.path.join(results_dir,sample_type,"bounding_box"),exist_ok=True)
 
     # Grayscale activation map
-    heatmap, heatmap_on_image = apply_colormap_on_image(org_img, activation_map, 'hsv')
+    heatmap, heatmap_on_image = apply_colormap_on_image(org_img, activation_map, 'brg')
     # Save colored heatmap
     # path_to_file = os.path.join(results_dir,sample_type, "Cam_HeatMap" , file_name+'.png')
-    # save_image(heatmap, path_to_file)
+    path_to_file = os.path.join(results_dir,file_name+"_Cam_HeatMap"+'.png')
+    save_image(heatmap, path_to_file)
     # # Save heatmap on iamge
     path_to_file = os.path.join(results_dir,file_name+"_Cam_On_Image"+'.png')
     save_image(heatmap_on_image, path_to_file)
     # # SAve grayscale heatmap
     # path_to_file = os.path.join(results_dir,sample_type,"Cam_Grayscale" ,file_name+'.png')
+    # path_to_file = os.path.join(results_dir,file_name+"_Cam_Grayscale"+'.png')
     # save_image(activation_map, path_to_file)
     #
-    # activation_map = format_np_output(activation_map)
-    # activation_map_2D = cv2.cvtColor(activation_map, cv2.COLOR_BGR2GRAY)
-    # img = np.array(org_img)
-    # thresh = cv2.threshold(activation_map_2D, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-    # cnts = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    # cnts = cnts[0] if len(cnts) == 2 else cnts[1]
-    # for c in cnts:
-    #     x,y,w,h = cv2.boundingRect(c)
-    #     cv2.rectangle(img, (x, y), (x + w, y + h), (36,255,12), 2)
-    # path_to_file = os.path.join(results_dir,sample_type,"bounding_box" ,file_name+'.png')
-    # save_image(img, path_to_file)
+    heatmap = heatmap.convert('RGB')
+    heatmap = np.array(heatmap)
+    heatmap = heatmap[:, :, ::-1].copy() 
+    
+    orig_img_cv2 = np.array(org_img.resize((224,224)).convert('RGB'))[:,:,::-1].copy()
+
+    # grey_img = cv2.cvtColor(heatmap, cv2.COLOR_BGR2GRAY)
+    # thresh = cv2.threshold(grey_img,127,255,cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+    
+
+    hsv = cv2.cvtColor(heatmap, cv2.COLOR_BGR2HSV)
+
+    ## mask of green (36,25,25) ~ (86, 255,255)
+    # mask = cv2.inRange(hsv, (36, 25, 25), (86, 255,255))
+    mask = cv2.inRange(hsv, (20, 25, 25), (70, 255,255))
+
+    ## slice the green
+    imask = mask>0
+    green = np.zeros_like(heatmap, np.uint8)
+    green[imask] = heatmap[imask]
+    grey_img = cv2.cvtColor(green, cv2.COLOR_BGR2GRAY)
+    thresh = cv2.threshold(grey_img,0,255,cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+
+    path_to_file = os.path.join(results_dir,file_name+'_Cam_thresholded.png')
+    cv2.imwrite(path_to_file,thresh)
+
+    bb_img,bb_coordinates = get_bb(orig_img_cv2,thresh)
+
+    path_to_json = os.path.join(results_dir,file_name+"_bb_box_coordinates"+'.txt')
+    
+    with open(path_to_json, 'w') as outfile:
+        json.dump(bb_coordinates, outfile)
+
+    path_to_bb_img = os.path.join(results_dir,file_name+"_bb_box_image"+'.png')
+    cv2.imwrite(path_to_bb_img,bb_img)
 
 
 
@@ -217,3 +244,34 @@ def recreate_image(im_as_var,mean,var):
 
     recreated_im = np.uint8(recreated_im).transpose(1, 2, 0)
     return recreated_im
+
+
+
+def get_bb(orig_img,thresh):
+    threshold = 150
+    canny_output = cv2.Canny(thresh, threshold, threshold * 2)
+
+
+    _, contours, _ = cv2.findContours(canny_output, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+    contours_poly = [None]*len(contours)
+    boundRect = [None]*len(contours)
+    for i, c in enumerate(contours):
+        contours_poly[i] = cv2.approxPolyDP(c, 3, True)
+        boundRect[i] = cv2.boundingRect(contours_poly[i])
+
+    boundRect = [tuple(x) for x in set(tuple(x) for x in boundRect)]
+    boundRect = remove_redundant_bb(boundRect)
+    drawing = np.zeros((canny_output.shape[0], canny_output.shape[1], 3), dtype=np.uint8)
+    boxes = {}
+    for i in range(len(boundRect)):
+        color = (0, 255, 0)
+        x = int(boundRect[i][0])
+        y = int(boundRect[i][1])
+        w = int(boundRect[i][2])
+        h = int(boundRect[i][3])
+        boxes['box{}'.format(i)] = [x,y,w,h]
+        cv2.rectangle(orig_img, (int(boundRect[i][0]), int(boundRect[i][1])), \
+          (int(boundRect[i][0]+boundRect[i][2]), int(boundRect[i][1]+boundRect[i][3])), color, 2)
+    
+    return orig_img,boxes

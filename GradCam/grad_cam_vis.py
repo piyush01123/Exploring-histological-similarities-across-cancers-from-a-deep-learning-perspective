@@ -1,3 +1,4 @@
+
 import os
 import numpy as np
 import glob, os
@@ -5,8 +6,6 @@ import argparse
 from PIL import Image
 import cv2
 import time
-from multiprocessing import Pool
-import multiprocessing
 import itertools
 from torchvision import datasets, models, transforms
 import torch
@@ -14,7 +13,20 @@ from torchvision import models
 from vis_utils import preprocess_image,save_class_activation_images
 import torch.nn as nn
 import json
+import pandas as pd
+import torch.nn.functional as F
 from torch.utils.data import Subset
+import torch.multiprocessing as mp
+import multiprocessing
+
+from torch.multiprocessing import Pool, set_start_method
+try:
+     set_start_method('spawn')
+except RuntimeError:
+    pass
+import bb_box
+from bb_box import BBoxerwGradCAM
+
 parser = argparse.ArgumentParser(description='Process args for Classifer')
 parser.add_argument("--test_dir", type=str, required=True)
 parser.add_argument("--model_checkpoint", type=str, required=True)
@@ -153,6 +165,11 @@ class GradCam():
         # You can also use the code below instead of the code line above, suggested by @ ptschandl
         # from scipy.ndimage.interpolation import zoom
         # cam = zoom(cam, np.array(input_image[0].shape[1:])/np.array(cam.shape))
+        original_image = Image.open(dataset_obj[2]).convert('RGB')
+        original_image = original_image.resize((224,224,))
+        save_class_activation_images(original_image, cam, args.save_dir , dataset_obj[2].split('/')[-1].split('.')[0],'xx')
+        
+        
         return cam,target_class
 
 
@@ -170,20 +187,8 @@ def main():
         ])
 
     test_dataset = ModImageFolder(root=args.test_dir, transform=data_transform)
-
     samples = [i[1] for i in test_dataset.samples]
-    cancer_indices = np.where(np.array(samples)==0)[0]
-    # cancer_indices = np.random.choice(cancer_indices,min(len(cancer_indices),1000),replace=False)
-    cancer_indices = cancer_indices[:min(len(cancer_indices),100)]
-    combined_dataset = Subset(test_dataset, np.array(list(cancer_indices)))
-
-    # normal_indices = np.where(np.array(samples)==1)[0]
-    # # normal_indices = np.random.choice(normal_indices,min(len(normal_indices),1000),replace=False)
-    # normal_indices = normal_indices[:min(len(normal_indices),1000)]
-    # # cancer_dataset = Subset(test_dataset, cancer_indices)
-    # # normal_dataset = Subset(test_dataset, normal_indices)
-    # combined_dataset = Subset(test_dataset, np.array(list(cancer_indices)+list(normal_indices)))
-
+    
     hparams = json.load(open(args.hparam_json, 'r'))[args.model_chosen]
     dropouts,hidden_layer_units,optimizer_name,lr = get_hyperpara(hparams)
     model = define_model(dropouts,hidden_layer_units,num_classes=2)
@@ -191,18 +196,41 @@ def main():
     ckpt = torch.load(args.model_checkpoint)
     ckpt = {k.replace("module.", ""): v for k, v in ckpt.items()}
     model.load_state_dict(ckpt)
+    model.share_memory()
 
-    print(model)
+    
+    #---------------Using previous method of random sampling------------------------------------------------------#
 
+    # cancer_indices = np.where(np.array(samples)==0)[0]
+    # # cancer_indices = np.random.choice(cancer_indices,min(len(cancer_indices),1000),replace=False)
+    # cancer_indices = cancer_indices[:min(len(cancer_indices),100)]
+    # reqd_dataset = Subset(test_dataset, np.array(list(cancer_indices)))
+    
+    # # normal_indices = np.where(np.array(samples)==1)[0]
+    # # # normal_indices = np.random.choice(normal_indices,min(len(normal_indices),1000),replace=False)
+    # # normal_indices = normal_indices[:min(len(normal_indices),1000)]
+    # # # cancer_dataset = Subset(test_dataset, cancer_indices)
+    # # # normal_dataset = Subset(test_dataset, normal_indices)
+    # # combined_dataset = Subset(test_dataset, np.array(list(cancer_indices)+list(normal_indices)))
+
+    #---------------------------------------------------------------------------------------------------------------#
+
+    #---------------------Using best cancerous samples----------------------------------------------------------#
+    df = pd.read_csv('../Best_cancer_samples/{}_best_cancer_samples.csv'.format(args.inferred_on))
+    best_cancerous_samples = list(df['paths'])
+
+    test_dataset_paths = [i[0] for i in test_dataset.samples]
+    cancer_indices = []
+    for i in test_dataset_paths:
+        if i in best_cancerous_samples:
+            cancer_indices.append(test_dataset_paths.index(i))
+    reqd_dataset = Subset(test_dataset, np.array(list(cancer_indices)))
     grad_cam = GradCam(model, target_layer="layer4")
-    # with Pool(processes = multiprocessing.cpu_count()) as pool:
-    #     pool.map(save_grad_cam_results, test_dataset)
+    
+    with Pool(processes = multiprocessing.cpu_count()) as pool:
+        pool.map(grad_cam.generate_cam, reqd_dataset)
 
-    for i in combined_dataset:
-        cam_out,pred = grad_cam.generate_cam(i)
-        original_image = Image.open(i[2]).convert('RGB')
-        original_image = original_image.resize((224,224,))
-        save_class_activation_images(original_image, cam_out, args.save_dir , i[2].split('/')[-1].split('.')[0],test_dataset.classes[i[1]])
+
 
 if __name__ == '__main__':
 
