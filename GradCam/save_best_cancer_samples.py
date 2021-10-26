@@ -92,7 +92,7 @@ def save_best_cancerous_samples(model,test_dataset,organ):
     df_filtered = df_sorted[df_sorted['probs']>0.98]
     df_filtered_cancer = df_filtered[df_filtered['slide_ids'].apply(lambda x:x.split('-')[3][:2]=='01')]
     img_list_high_prob_cancer = df_filtered_cancer[df_filtered_cancer['targets'] == df_filtered_cancer['preds']]
-    img_list_high_prob_cancer.to_csv('{}/{}_best_cancer_samples.csv'.format(args.save_dir,organ))
+    img_list_high_prob_cancer.to_csv('{}/{}_best_cancer_samples_train.csv'.format(args.save_dir,organ))
 
 
 if __name__=='__main__':

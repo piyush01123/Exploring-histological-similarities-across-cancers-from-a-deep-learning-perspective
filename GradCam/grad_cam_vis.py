@@ -127,7 +127,8 @@ class GradCam():
         # conv_output is the output of convolutions at specified layer
         # model_output is the final output of the model (1, 1000)
         input_image = dataset_obj[0].view(1,3,224,224)
-        target_class = dataset_obj[1]
+        # target_class = dataset_obj[1]
+        target_class = None
         conv_output, model_output = self.extractor.forward_pass(input_image)
         model_output = model_output.view(1,-1)
         if target_class is None:
@@ -217,14 +218,17 @@ def main():
 
     #---------------------Using best cancerous samples----------------------------------------------------------#
     df = pd.read_csv('../Best_cancer_samples/{}_best_cancer_samples.csv'.format(args.inferred_on))
-    best_cancerous_samples = list(df['paths'])
-
+    best_cancerous_patch_fp = list(df['paths'])
+    best_cancerous_patches = [i.split('/')[-1] for i in best_cancerous_patch_fp]
     test_dataset_paths = [i[0] for i in test_dataset.samples]
     cancer_indices = []
     for i in test_dataset_paths:
-        if i in best_cancerous_samples:
+        if i.split('/')[-1] in best_cancerous_patches:
             cancer_indices.append(test_dataset_paths.index(i))
+    
+
     reqd_dataset = Subset(test_dataset, np.array(list(cancer_indices)))
+    print(len(test_dataset_paths),len(cancer_indices))
     grad_cam = GradCam(model, target_layer="layer4")
     
     with Pool(processes = multiprocessing.cpu_count()) as pool:

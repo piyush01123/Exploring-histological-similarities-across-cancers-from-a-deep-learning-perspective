@@ -43,7 +43,84 @@ def save_gradient_images(gradient, result_dir, file_name):
     save_image(gradient, path_to_file)
 
 
-def save_class_activation_images(org_img, activation_map, results_dir,file_name,sample_type):
+# def save_class_activation_images(org_img, activation_map, results_dir,file_name,sample_type):
+#     """
+#         Saves cam activation map and activation map on the original image
+#     Args:
+#         org_img (PIL img): Original image
+#         activation_map (numpy arr): Activation map (grayscale) 0-255
+#         file_name (str): File name of the exported image
+#     """
+#     if not os.path.exists(results_dir):
+#         os.makedirs(results_dir)
+#     os.makedirs(os.path.join(results_dir),exist_ok=True)
+#     # os.makedirs(os.path.join(results_dir,sample_type,"Cam_HeatMap"),exist_ok=True)
+#     # os.makedirs(os.path.join(results_dir,sample_type,"Cam_On_Image"),exist_ok=True)
+#     # os.makedirs(os.path.join(results_dir,sample_type,"Cam_Grayscale"),exist_ok=True)
+#     # os.makedirs(os.path.join(results_dir,sample_type,"bounding_box"),exist_ok=True)
+
+#     # Grayscale activation map
+#     heatmap, heatmap_on_image = apply_colormap_on_image(org_img, activation_map, 'brg')
+#     # Save colored heatmap
+#     # path_to_file = os.path.join(results_dir,sample_type, "Cam_HeatMap" , file_name+'.png')
+#     path_to_file = os.path.join(results_dir,file_name+"_Cam_HeatMap"+'.png')
+#     save_image(heatmap, path_to_file)
+#     # # Save heatmap on iamge
+#     path_to_file = os.path.join(results_dir,file_name+"_Cam_On_Image"+'.png')
+#     save_image(heatmap_on_image, path_to_file)
+#     # # SAve grayscale heatmap
+#     # path_to_file = os.path.join(results_dir,sample_type,"Cam_Grayscale" ,file_name+'.png')
+#     # path_to_file = os.path.join(results_dir,file_name+"_Cam_Grayscale"+'.png')
+#     # save_image(activation_map, path_to_file)
+#     #
+#     heatmap = heatmap.convert('RGB')
+#     heatmap = np.array(heatmap)
+#     heatmap = heatmap[:, :, ::-1].copy() 
+    
+#     orig_img_cv2 = np.array(org_img.resize((224,224)).convert('RGB'))[:,:,::-1].copy()
+
+#     # grey_img = cv2.cvtColor(heatmap, cv2.COLOR_BGR2GRAY)
+#     # thresh = cv2.threshold(grey_img,127,255,cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+    
+
+#     hsv = cv2.cvtColor(heatmap, cv2.COLOR_BGR2HSV)
+
+#     ## mask of green (36,25,25) ~ (86, 255,255)
+#     # mask = cv2.inRange(hsv, (36, 25, 25), (86, 255,255))
+#     mask = cv2.inRange(hsv, (20, 25, 25), (70, 255,255))
+
+#     ## slice the green
+#     imask = mask>0
+#     green = np.zeros_like(heatmap, np.uint8)
+#     green[imask] = heatmap[imask]
+#     grey_img = cv2.cvtColor(green, cv2.COLOR_BGR2GRAY)
+#     thresh = cv2.threshold(grey_img,0,255,cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+
+#     path_to_file = os.path.join(results_dir,file_name+'_Cam_thresholded.png')
+#     cv2.imwrite(path_to_file,thresh)
+
+#     bb_img,bb_coordinates = get_bb(orig_img_cv2,thresh)
+
+#     path_to_json = os.path.join(results_dir,file_name+"_bb_box_coordinates"+'.txt')
+    
+#     with open(path_to_json, 'w') as outfile:
+#         json.dump(bb_coordinates, outfile)
+
+#     path_to_bb_img = os.path.join(results_dir,file_name+"_bb_box_image"+'.png')
+#     cv2.imwrite(path_to_bb_img,bb_img)
+
+
+
+def save_class_activation_images(org_img, activation_map, results_dir,inferred_on,file_name):
+    cam_on_img_dir = os.path.join(results_dir,"gc_simp",inferred_on)
+    os.makedirs(cam_on_img_dir,exist_ok=True)
+    cam_dir = os.path.join(results_dir,"gradcam",inferred_on)
+    os.makedirs(cam_dir,exist_ok=True)
+    cam_th_dir = os.path.join(results_dir,"gc_th",inferred_on)
+    os.makedirs(cam_th_dir,exist_ok=True)
+    cam_bb_box_dir = os.path.join(results_dir,"gc_bb_box",inferred_on)
+    os.makedirs(cam_bb_box_dir,exist_ok=True)
+    
     """
         Saves cam activation map and activation map on the original image
     Args:
@@ -51,9 +128,6 @@ def save_class_activation_images(org_img, activation_map, results_dir,file_name,
         activation_map (numpy arr): Activation map (grayscale) 0-255
         file_name (str): File name of the exported image
     """
-    if not os.path.exists(results_dir):
-        os.makedirs(results_dir)
-    os.makedirs(os.path.join(results_dir),exist_ok=True)
     # os.makedirs(os.path.join(results_dir,sample_type,"Cam_HeatMap"),exist_ok=True)
     # os.makedirs(os.path.join(results_dir,sample_type,"Cam_On_Image"),exist_ok=True)
     # os.makedirs(os.path.join(results_dir,sample_type,"Cam_Grayscale"),exist_ok=True)
@@ -63,16 +137,17 @@ def save_class_activation_images(org_img, activation_map, results_dir,file_name,
     heatmap, heatmap_on_image = apply_colormap_on_image(org_img, activation_map, 'brg')
     # Save colored heatmap
     # path_to_file = os.path.join(results_dir,sample_type, "Cam_HeatMap" , file_name+'.png')
-    path_to_file = os.path.join(results_dir,file_name+"_Cam_HeatMap"+'.png')
+    path_to_file = os.path.join(cam_dir,file_name+'.png')
     save_image(heatmap, path_to_file)
     # # Save heatmap on iamge
-    path_to_file = os.path.join(results_dir,file_name+"_Cam_On_Image"+'.png')
+    path_to_file = os.path.join(cam_on_img_dir,file_name+'.png')
     save_image(heatmap_on_image, path_to_file)
     # # SAve grayscale heatmap
     # path_to_file = os.path.join(results_dir,sample_type,"Cam_Grayscale" ,file_name+'.png')
     # path_to_file = os.path.join(results_dir,file_name+"_Cam_Grayscale"+'.png')
     # save_image(activation_map, path_to_file)
     #
+    
     heatmap = heatmap.convert('RGB')
     heatmap = np.array(heatmap)
     heatmap = heatmap[:, :, ::-1].copy() 
@@ -96,19 +171,18 @@ def save_class_activation_images(org_img, activation_map, results_dir,file_name,
     grey_img = cv2.cvtColor(green, cv2.COLOR_BGR2GRAY)
     thresh = cv2.threshold(grey_img,0,255,cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
 
-    path_to_file = os.path.join(results_dir,file_name+'_Cam_thresholded.png')
+    path_to_file = os.path.join(cam_th_dir,file_name+'.png')
     cv2.imwrite(path_to_file,thresh)
 
     bb_img,bb_coordinates = get_bb(orig_img_cv2,thresh)
 
-    path_to_json = os.path.join(results_dir,file_name+"_bb_box_coordinates"+'.txt')
+    path_to_json = os.path.join(cam_bb_box_dir,file_name+'.txt')
     
     with open(path_to_json, 'w') as outfile:
         json.dump(bb_coordinates, outfile)
 
-    path_to_bb_img = os.path.join(results_dir,file_name+"_bb_box_image"+'.png')
+    path_to_bb_img = os.path.join(cam_bb_box_dir,file_name+'.png')
     cv2.imwrite(path_to_bb_img,bb_img)
-
 
 
 def apply_colormap_on_image(org_im, activation, colormap_name):
@@ -251,8 +325,12 @@ def get_bb(orig_img,thresh):
     threshold = 150
     canny_output = cv2.Canny(thresh, threshold, threshold * 2)
 
+    try:
+        _, contours, _ = cv2.findContours(canny_output, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-    _, contours, _ = cv2.findContours(canny_output, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    except:
+        contours,_ = cv2.findContours(canny_output, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)   
+    
 
     contours_poly = [None]*len(contours)
     boundRect = [None]*len(contours)
