@@ -1,6 +1,6 @@
 # Exploring Histological Similarities Across Cancers From a Deep Learning Perspective
 
-This code is for our paper titled *Exploring Histological Similarities Across Cancers From a Deep Learning Perspective* published at Frontiers in Oncology 2021.
+This code is for our paper titled *Exploring Histological Similarities Across Cancers From a Deep Learning Perspective* published at Frontiers in Oncology, Vol 12, 2022.
 
 **Authors:** Piyush Singh*, Ashish Menon*, C. V. Jawahar, P. K. Vinod
 
