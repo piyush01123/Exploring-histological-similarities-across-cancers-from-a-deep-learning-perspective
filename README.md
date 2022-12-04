@@ -11,13 +11,19 @@ This code is for our paper titled *Exploring Histological Similarities Across Ca
 
 **Summary:** In this work, we trained 11 patch classifiers for the Cancer vs Normal task on 11 different cancer types. Then we perform cross inference. Further we use each of these classifiers to generate RoIs using GradCAM and measure overlap with respct to the model trained on each cancer type. Furthermore, we study the similarities in the histograms of geometric features within these RoIs to enhance this understanding even more.
 
-
-**Abstract:** Histopathology image analysis is widely accepted as a gold standard for cancer diagnosis. The Cancer Genome Atlas (TCGA) contains large repositories of histopathology whole slide images spanning several organs and subtypes. However, not much work has gone into analyzing all the organs and subtypes and their similarities. Our work attempts to bridge this gap by training deep learning models to classify cancer vs. normal patches for 11 subtypes spanning seven organs (9,792 tissue slides) to achieve high classification performance. We used these models to investigate their performances in the test set of other organs (cross-organ inference). We found that every model had a good cross-organ inference accuracy when tested on breast, colorectal, and liver cancers. Further, high accuracy is observed between models trained on the cancer subtypes originating from the same organ (kidney and lung). We also validated these performances by showing the separability of cancer and normal samples in a high-dimensional feature space. We further hypothesized that the high cross-organ inferences are due to shared tumor morphologies among organs. We validated the hypothesis by showing the overlap in the Gradient-weighted Class Activation Mapping (GradCAM) visualizations and similarities in the distributions of nuclei features present within the high-attention regions.
+## Architecture
+### Patch CNN architecture
+![arch_v2_lite(1)](https://user-images.githubusercontent.com/19518507/205519069-35e04a92-8058-4366-8169-9154dbf9624a.jpg)
+### Nucleus geometry analysis workflow
+![nuc_seg_wflow](https://user-images.githubusercontent.com/19518507/205519080-971f3fa8-bcc7-44ab-ab50-c7de419d97ec.jpg)
 
 ## Results
-
-
-
+### Cross Inference Results
+![grid_v2](https://user-images.githubusercontent.com/19518507/205519152-bf67eab2-9da3-450c-8f1a-a177366c7840.jpg)
+### GradCAM Overlap
+![gradcam_v2(1)](https://user-images.githubusercontent.com/19518507/205519432-1d137e08-d33e-4ec3-9d89-2047d9a9fce5.jpg)
+### Nucleus geometry analysis
+![BRCA_KICH_COAD_combined(1)](https://user-images.githubusercontent.com/19518507/205519359-ccc5d09e-c86e-423d-b9e0-a67aac92236a.jpg)
 
 ## Summary of dataset used in project
 
